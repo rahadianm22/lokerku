@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Design tokens — ganti nilai di sini setelah dapat hasil Claude Design
+   ------------------------------------------------------------------ */
+:root {
+  --bg: #f4f3ee;
+  --surface: #ffffff;
+  --surface-2: #faf9f5;
+  --ink: #17160f;
+  --ink-2: #4a4940;
+  --muted: #86847a;
+  --line: #e4e2d9;
+  --line-strong: #cfccc0;
+  --accent: #c6f24e; /* lime highlighter */
+  --accent-ink: #17160f;
+  --focus: #3d5afe;
+  --danger: #e5484d;
+  --warn: #f5a524;
+  --radius: 14px;
+  --shadow-lg: 0 24px 60px -20px rgb(23 22 15 / 0.35), 0 2px 6px rgb(23 22 15 / 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0d;
+    --surface: #181816;
+    --surface-2: #1e1e1b;
+    --ink: #f2f1ea;
+    --ink-2: #c9c7bc;
+    --muted: #8b897f;
+    --line: #2a2a26;
+    --line-strong: #3a3a35;
+    --accent: #c6f24e;
+    --accent-ink: #12120f;
+    --shadow-lg: 0 24px 60px -20px rgb(0 0 0 / 0.7);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-focus: var(--focus);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+    var(--bg);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Status chips */
+.status-saved     { --c: #8a8a80; }
+.status-applied   { --c: #3d7bfd; }
+.status-interview { --c: #e59a12; }
+.status-offer     { --c: #1fae6b; }
+.status-rejected  { --c: #e5484d; }
+.status-archived  { --c: #a1a097; }
+.chip {
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
+}
+
+/* Shimmer skeleton saat ekstraksi */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    color-mix(in srgb, var(--accent) 35%, var(--surface-2)) 50%,
+    var(--surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+/* Highlight baris yang baru masuk */
+.row-flash { animation: row-flash 2.4s ease-out; }
+@keyframes row-flash {
+  0%, 25% { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+  100% { background: transparent; }
+}
+
+.field {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field::placeholder { color: var(--muted); }
+.field:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
