@@ -1,12 +1,13 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
-import { signOut, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { dropDb, getDb, getMeta, setMeta, type LokerDb } from "./db";
 import { fromLegacy, LEGACY_KEY } from "./legacy";
 import { TOMBSTONE_TTL } from "./merge";
 import { SEED } from "./seed";
+import { DEFAULT_SETTINGS, parseSettings, type Settings } from "./settings";
 import type { Job } from "./types";
 
 export type SyncState =
@@ -37,6 +38,9 @@ interface Store {
   revive: (job: Job) => Promise<void>;
   replaceAll: (list: Job[]) => Promise<Job[]>;
   logout: () => Promise<void>;
+  switchAccount: () => Promise<void>;
+  settings: Settings;
+  saveSettings: (patch: Partial<Settings>) => Promise<void>;
   notice: string | null;
   clearNotice: () => void;
 }
@@ -94,7 +98,9 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
   const authLoading = authEnabled && session.status === "loading";
   const user = authEnabled && session.status === "authenticated" ? session.data.user : null;
   const ns = authLoading ? null : user?.id ? `u-${user.id}` : "guest";
-  const db = useMemo(() => (ns ? getDb(ns) : null), [ns]);
+  // Saat keluar/ganti akun, `leaving` melepas database dari semua pembaca sebelum dihapus.
+  const [leaving, setLeaving] = useState(false);
+  const db = useMemo(() => (ns && !leaving ? getDb(ns) : null), [ns, leaving]);
 
   const [prepared, setPrepared] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -123,11 +129,25 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
     };
   }, [db, ns]);
 
-  const ready = !!ns && prepared === ns;
+  const ready = !!ns && !leaving && prepared === ns;
   const jobs = useLiveQuery(
     async () => (db && ready ? (await db.jobs.toArray()).filter((j) => !j.deletedAt) : []),
     [db, ready],
     [] as Job[],
+  );
+  const rawSettings = useLiveQuery(
+    async () => (db && ready ? ((await db.meta.get("settings"))?.value ?? null) : null),
+    [db, ready],
+    null,
+  );
+  const settings = useMemo(() => parseSettings(rawSettings), [rawSettings]);
+
+  const saveSettings = useCallback(
+    async (patch: Partial<Settings>) => {
+      if (!db) return;
+      await setMeta(db, "settings", JSON.stringify({ ...DEFAULT_SETTINGS, ...settings, ...patch }));
+    },
+    [db, settings],
   );
 
   /* ---------- sinkron ---------- */
@@ -292,11 +312,24 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
     [db, changed],
   );
 
-  const logout = useCallback(async () => {
-    // Salinan lokal akun dihapus supaya orang lain di perangkat ini tidak melihatnya. Data tetap aman di Sheet.
-    if (ns && ns !== "guest") await dropDb(ns);
-    await signOut({ callbackUrl: "/" });
+  /** Hapus salinan lokal akun ini supaya orang lain di perangkat ini tidak melihatnya. Data tetap aman di Sheet. */
+  const purgeLocal = useCallback(async () => {
+    if (!ns || ns === "guest") return;
+    clearTimeout(timer.current);
+    setLeaving(true);
+    await new Promise((r) => setTimeout(r, 80)); // beri waktu pembaca berhenti sebelum database ditutup
+    await dropDb(ns);
   }, [ns]);
+
+  const logout = useCallback(async () => {
+    await purgeLocal();
+    await signOut({ callbackUrl: "/" });
+  }, [purgeLocal]);
+
+  const switchAccount = useCallback(async () => {
+    await purgeLocal();
+    await signIn("google", { callbackUrl: "/app" }, { prompt: "select_account consent" });
+  }, [purgeLocal]);
 
   const value: Store = {
     ready,
@@ -313,6 +346,9 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
     revive,
     replaceAll,
     logout,
+    switchAccount,
+    settings,
+    saveSettings,
     notice,
     clearNotice: () => setNotice(null),
   };

@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useDragControls, useReducedMotion } from "moti
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMedia } from "@/hooks/use-media";
 import { detectPlatform } from "@/lib/platform";
+import type { Settings } from "@/lib/settings";
 import type { Confidence, Draft, ExtractResult, Job, MissingField } from "@/lib/types";
 import { normalizeUrl, toHttpUrl } from "@/lib/url";
 import { StepLink } from "./step-link";
@@ -15,7 +16,7 @@ type Step = "link" | "loading" | "review";
 
 export type DialogMode = { kind: "add" } | { kind: "edit"; job: Job };
 
-const blank = (url = ""): Draft => ({
+const blank = (url: string, s: Settings): Draft => ({
   url,
   company: "",
   title: "",
@@ -27,8 +28,8 @@ const blank = (url = ""): Draft => ({
   salary: "",
   postedAt: null,
   deadline: null,
-  status: "saved",
-  priority: "med",
+  status: s.defaultStatus,
+  priority: s.defaultPriority,
   notes: "",
 });
 
@@ -53,12 +54,14 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
 export function AddJobDialog({
   mode,
   jobs,
+  settings,
   onClose,
   onSave,
   onShowExisting,
 }: {
   mode: DialogMode;
   jobs: Job[];
+  settings: Settings;
   onClose: () => void;
   onSave: (draft: Draft, editing: Job | null) => void;
   onShowExisting: (job: Job) => void;
@@ -72,7 +75,7 @@ export function AddJobDialog({
   const [dir, setDir] = useState(1);
   const [url, setUrl] = useState(editing?.url ?? "");
   const [error, setError] = useState("");
-  const [draft, setDraft] = useState<Draft>(editing ? toDraft(editing) : blank());
+  const [draft, setDraft] = useState<Draft>(editing ? toDraft(editing) : blank("", settings));
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [missing, setMissing] = useState<MissingField[]>([]);
   const [showUrl, setShowUrl] = useState(!!editing);
@@ -98,14 +101,17 @@ export function AddJobDialog({
   const set = useCallback(<K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v })), []);
   const canSave = !!draft.company.trim() && !!draft.title.trim();
 
-  async function fetchData() {
-    const target = toHttpUrl(url);
+  /** `raw` diisi saat link baru saja ditempel (state `url` belum sempat berubah). */
+  async function fetchData(raw?: string) {
+    const target = toHttpUrl(raw ?? url);
     if (!target) {
       setError("Link belum valid. Contoh: https://www.linkedin.com/jobs/view/…");
       return;
     }
     setError("");
     setUrl(target);
+    // Simpan otomatis tidak boleh membuat loker kembar: biarkan pengguna melihat banner duplikat.
+    if (raw !== undefined && byUrl.has(normalizeUrl(target))) return;
     go("loading", 1);
     const ctrl = new AbortController();
     abort.current = ctrl;
@@ -133,9 +139,9 @@ export function AddJobDialog({
       clearTimeout(timeout);
       abort.current = null;
     }
-    const base = blank(target);
+    const base = blank(target, settings);
     const d = result.data;
-    setDraft({
+    const filled: Draft = {
       ...base,
       company: d.company ?? "",
       title: d.title ?? "",
@@ -149,7 +155,13 @@ export function AddJobDialog({
       deadline: d.deadline ?? null,
       logoUrl: d.logoUrl,
       url: target,
-    });
+    };
+    // Simpan otomatis hanya kalau perusahaan dan posisi terbaca. Selain itu form tetap dibuka untuk dilengkapi.
+    if (settings.autoSave && result.confidence !== "failed" && !byUrl.has(normalizeUrl(target)) && filled.company.trim() && filled.title.trim()) {
+      onSave(filled, null);
+      return;
+    }
+    setDraft(filled);
     setConfidence(result.confidence);
     setMissing(result.confidence === "failed" ? ["company", "title", "city", "salary", "postedAt", "deadline"] : result.missing);
     setShowUrl(false);
@@ -163,7 +175,7 @@ export function AddJobDialog({
 
   function manual() {
     const target = toHttpUrl(url);
-    setDraft(blank(target || ""));
+    setDraft(blank(target || "", settings));
     setConfidence(null);
     setMissing([]);
     setShowUrl(!target);
@@ -328,6 +340,7 @@ export function AddJobDialog({
                       setError("");
                     }}
                     onSubmit={fetchData}
+                    autoSave={settings.autoSave}
                     error={error}
                     duplicate={duplicate}
                     onShowDuplicate={onShowExisting}

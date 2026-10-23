@@ -65,3 +65,89 @@ test("hotkey N membuka modal, Esc menutup dan mengembalikan fokus", async ({ pag
   await page.keyboard.press("/");
   await expect(page.getByLabel("Cari loker")).toBeFocused();
 });
+
+test("pengaturan: simpan otomatis saat link ditempel, bertahan setelah reload", async ({ page }, info) => {
+  const mobile = info.project.name === "mobile";
+  await page.route("**/api/extract", (route) =>
+    route.fulfill({
+      json: {
+        confidence: "partial",
+        missing: ["salary"],
+        data: {
+          url: "https://glints.com/id/opportunities/jobs/e2e-auto",
+          platform: "Glints",
+          company: "PT Otomatis",
+          title: "Data Analyst Otomatis",
+          city: "Bandung",
+          deadline: "2026-12-31",
+        },
+      },
+    }),
+  );
+  await page.goto("/app");
+
+  // Nyalakan di Pengaturan
+  await page.getByRole("button", { name: "Menu lainnya" }).click();
+  await page.getByRole("menuitem", { name: "Pengaturan" }).click();
+  const settings = page.getByRole("dialog", { name: "Pengaturan" });
+  const auto = settings.getByRole("switch", { name: /Simpan otomatis/ });
+  await expect(auto).toHaveAttribute("aria-checked", "false");
+  await auto.click();
+  await expect(auto).toHaveAttribute("aria-checked", "true");
+  await settings.getByLabel("Status awal").selectOption("applied");
+  await settings.getByRole("button", { name: "Selesai" }).click();
+  await expect(settings).toBeHidden();
+
+  // Tempel link: langsung tersimpan tanpa langkah review
+  await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+  const dialog = page.getByRole("dialog");
+  const input = dialog.getByLabel("Link lowongan");
+  await input.focus();
+  await page.evaluate(() => {
+    const el = document.getElementById("lk-url")!;
+    const dt = new DataTransfer();
+    dt.setData("text", "https://glints.com/id/opportunities/jobs/e2e-auto");
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("Loker disimpan ke tabel")).toBeVisible();
+  const row = mobile ? page.getByRole("article", { name: /Data Analyst Otomatis/ }) : page.getByRole("row", { name: /Data Analyst Otomatis/ });
+  await expect(row).toBeVisible();
+  await expect(row.getByText("Sudah Apply").first()).toBeVisible(); // status awal dari Pengaturan
+
+  // Pengaturan bertahan setelah reload
+  await page.reload();
+  await page.getByRole("button", { name: "Menu lainnya" }).click();
+  await page.getByRole("menuitem", { name: "Pengaturan" }).click();
+  await expect(page.getByRole("switch", { name: /Simpan otomatis/ })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+});
+
+test("simpan otomatis tidak membuat loker kembar", async ({ page }) => {
+  const data = { url: "https://glints.com/id/opportunities/jobs/e2e-dup", platform: "Glints", company: "PT Kembar", title: "Dup Role", city: "Jakarta" };
+  await page.route("**/api/extract", (route) => route.fulfill({ json: { confidence: "partial", missing: [], data } }));
+  await page.goto("/app");
+  await page.getByRole("button", { name: "Menu lainnya" }).click();
+  await page.getByRole("menuitem", { name: "Pengaturan" }).click();
+  await page.getByRole("switch", { name: /Simpan otomatis/ }).click();
+  await page.getByRole("button", { name: "Selesai" }).click();
+
+  const paste = async () => {
+    await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+    await page.locator("#lk-url").focus();
+    await page.evaluate((u) => {
+      const el = document.getElementById("lk-url")!;
+      const dt = new DataTransfer();
+      dt.setData("text", u);
+      el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, data.url);
+  };
+  await paste();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await paste();
+  // Kedua kali: dialog tetap terbuka dengan banner duplikat.
+  await expect(page.getByText("Loker ini sudah ada di tabel")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText(/Menampilkan 1 dari 1 loker/)).toBeVisible();
+});

@@ -39,6 +39,22 @@ function subscribe(fn: () => void) {
 
 const isDarkNow = () => document.documentElement.classList.contains("dark");
 
+/** Preferensi tema: Terang, Gelap, atau ikut sistem. */
+export function useThemePref() {
+  const pref = useSyncExternalStore(subscribe, read, (): ThemePref => "system");
+  const setPref = useCallback((next: ThemePref) => {
+    try {
+      if (next === "system") localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, next);
+    } catch {
+      /* tetap berlaku untuk sesi ini */
+    }
+    apply(next);
+    listeners.forEach((l) => l());
+  }, []);
+  return { pref, setPref };
+}
+
 export function useTheme() {
   const dark = useSyncExternalStore(subscribe, isDarkNow, () => false);
   const toggle = useCallback(() => {

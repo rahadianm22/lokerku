@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Download, FileUp, LogIn, LogOut, Moon, MoreHorizontal, Plus, RefreshCw, Sheet, Sun } from "lucide-react";
+import { Database, Download, FileUp, LogIn, LogOut, Moon, MoreHorizontal, Plus, RefreshCw, Settings, Sheet, Sun } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
@@ -17,6 +17,7 @@ interface Props {
   onLogin: () => void;
   onLogout: () => void;
   onSyncNow: () => void;
+  onSettings: () => void;
   addRef: React.Ref<HTMLButtonElement>;
 }
 
@@ -143,6 +144,10 @@ export function Header({ addRef, ...p }: Props) {
                   Restore dari backup…
                 </button>
                 <hr />
+                <button role="menuitem" tabIndex={-1} type="button" className="menu-item" onClick={() => select(p.onSettings)}>
+                  <Settings className="ic" strokeWidth={1.75} aria-hidden />
+                  Pengaturan
+                </button>
                 <button role="menuitem" tabIndex={-1} type="button" className="menu-item" onClick={() => select(toggle)}>
                   {dark ? <Sun className="ic" strokeWidth={1.75} aria-hidden /> : <Moon className="ic" strokeWidth={1.75} aria-hidden />}
                   {dark ? "Mode terang" : "Mode gelap"}

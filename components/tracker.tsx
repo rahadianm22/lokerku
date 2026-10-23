@@ -18,6 +18,7 @@ import { Header } from "./header";
 import { JobCardList } from "./job-card-list";
 import { JobTable } from "./job-table";
 import { StatsRow } from "./stats-row";
+import { SettingsDialog } from "./settings-dialog";
 import { SyncStatus } from "./sync-status";
 import { useToast } from "./toast";
 import { Toolbar } from "./toolbar";
@@ -123,6 +124,7 @@ export function Tracker() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("new");
   const [dialog, setDialog] = useState<DialogMode | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
@@ -167,8 +169,27 @@ export function Tracker() {
   }, []);
 
   const openAdd = useCallback(() => openDialog({ kind: "add" }), [openDialog]);
-  useHotkey("n", openAdd, ready && !dialog);
-  useHotkey("/", () => searchRef.current?.focus(), ready && !dialog);
+  useHotkey("n", openAdd, ready && !dialog && !settingsOpen);
+  useHotkey("/", () => searchRef.current?.focus(), ready && !dialog && !settingsOpen);
+
+  const menuRef = useRef<HTMLElement | null>(null);
+  const openSettings = useCallback(() => {
+    // Menu ⋯ sudah menutup dan mengembalikan fokus ke pemicunya; simpan itu untuk dipulihkan nanti.
+    menuRef.current = document.activeElement as HTMLElement | null;
+    setSettingsOpen(true);
+  }, []);
+  const closeSettings = useCallback(() => {
+    setSettingsOpen(false);
+    const back = menuRef.current;
+    requestAnimationFrame(() => (back?.isConnected && back !== document.body ? back : addRef.current)?.focus());
+  }, []);
+
+  async function deleteAll() {
+    if (!window.confirm(`Hapus semua ${jobs.length} loker? Ini juga menghapusnya dari Google Sheet.`)) return;
+    const before = await store.replaceAll([]);
+    closeSettings();
+    toast(`${before.length} loker dihapus`, () => store.replaceAll(before));
+  }
 
   async function handleSave(draft: Draft, editing: Job | null) {
     if (editing) {
@@ -244,6 +265,7 @@ export function Tracker() {
         onLogin={login}
         onLogout={store.logout}
         onSyncNow={store.syncNow}
+        onSettings={openSettings}
       />
 
       {account ? <SyncNotice /> : authEnabled && ready && <GuestNotice />}
@@ -288,9 +310,28 @@ export function Tracker() {
             key={dialog.kind === "edit" ? dialog.job.id : "add"}
             mode={dialog}
             jobs={jobs}
+            settings={store.settings}
             onClose={closeDialog}
             onSave={handleSave}
             onShowExisting={showExisting}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {settingsOpen && (
+          <SettingsDialog
+            account={account}
+            authEnabled={authEnabled}
+            settings={store.settings}
+            onSettings={store.saveSettings}
+            sheetUrl={store.sheetUrl}
+            sync={store.sync}
+            jobCount={jobs.length}
+            onSyncNow={store.syncNow}
+            onSwitchAccount={store.switchAccount}
+            onDeleteAll={deleteAll}
+            onClose={closeSettings}
           />
         )}
       </AnimatePresence>

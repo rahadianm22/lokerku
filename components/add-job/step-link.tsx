@@ -11,13 +11,16 @@ export function StepLink({
   url,
   onUrl,
   onSubmit,
+  autoSave,
   error,
   duplicate,
   onShowDuplicate,
 }: {
   url: string;
   onUrl: (v: string) => void;
-  onSubmit: () => void;
+  /** Tanpa argumen = pakai isi field. Dengan argumen = link yang baru ditempel. */
+  onSubmit: (pasted?: string) => void;
+  autoSave: boolean;
   error: string;
   duplicate: Job | null;
   onShowDuplicate: (j: Job) => void;
@@ -37,7 +40,10 @@ export function StepLink({
   async function paste() {
     try {
       const text = (await navigator.clipboard.readText()).trim();
-      if (text) onUrl(text);
+      if (text) {
+        onUrl(text);
+        if (autoSave && toHttpUrl(text)) onSubmit(text);
+      }
     } catch {
       /* izin clipboard ditolak: biarkan pengguna menempel manual */
     }
@@ -67,6 +73,15 @@ export function StepLink({
           placeholder="https://www.linkedin.com/jobs/view/…"
           value={url}
           onChange={(e) => onUrl(e.target.value)}
+          onPaste={(e) => {
+            // Simpan otomatis: link yang ditempel langsung diproses tanpa menekan Ambil data.
+            const text = e.clipboardData.getData("text").trim();
+            if (autoSave && toHttpUrl(text) && !url.trim()) {
+              e.preventDefault();
+              onUrl(text);
+              onSubmit(text);
+            }
+          }}
           aria-invalid={!!error}
           aria-describedby={error ? "lk-url-err lk-url-help" : "lk-url-help"}
         />
