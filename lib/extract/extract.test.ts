@@ -65,6 +65,20 @@ describe("parser terhadap fixture", () => {
     });
   });
 
+  it("Greenhouse tanpa JSON-LD: perusahaan dari <title>, lokasi dari og:description", () => {
+    const r = parseJobHtml(fixture("greenhouse-board.html"), "https://job-boards.eu.greenhouse.io/contohkripto/jobs/1234567?gh_src=abc");
+    expect(r.data).toMatchObject({
+      platform: "Situs perusahaan",
+      title: "Senior Product Designer, Web3",
+      company: "Contoh Kripto",
+      city: "Vienna",
+      level: "Senior",
+    });
+    expect(r.data.logoUrl).toContain("greenhouse.io");
+    expect(r.missing).toEqual(["salary", "postedAt", "deadline"]);
+    expect(r.confidence).toBe("partial");
+  });
+
   it("halaman login → failed", () => {
     const r = parseJobHtml(fixture("login-wall.html"), "https://www.linkedin.com/jobs/view/1");
     expect(r.confidence).toBe("failed");
@@ -140,5 +154,26 @@ describe("heuristik", () => {
   it("pola judul", () => {
     expect(splitTitle("Designer - Contoh | JobStreet")).toEqual({ title: "Designer", company: "Contoh" });
     expect(splitTitle("Lowongan Kerja QA di PT Contoh, Surabaya")).toEqual({ title: "QA", company: "PT Contoh", city: "Surabaya" });
+  });
+});
+
+describe("tebakan perusahaan", () => {
+  it("dari alamat ATS dan domain", async () => {
+    const { atsCompany, hostCompany, guessCompany } = await import("./company");
+    expect(atsCompany("https://job-boards.eu.greenhouse.io/bitpanda/jobs/1")).toBe("Bitpanda");
+    expect(atsCompany("https://jobs.lever.co/acme-corp/abc")).toBe("Acme Corp");
+    expect(atsCompany("https://bitpanda.jobs.personio.de/job/1")).toBe("Bitpanda");
+    expect(atsCompany("https://contoh.com/jobs/1")).toBe("");
+    expect(hostCompany("https://careers.bitpanda.com/jobs/1")).toBe("Bitpanda");
+    expect(hostCompany("https://karier.contoh-maju.co.id/lowongan/1")).toBe("Contoh Maju");
+    expect(hostCompany("https://www.ruangguru.com/careers")).toBe("Ruangguru");
+  });
+
+  it("og:site_name dipakai di situs perusahaan, tidak di papan lowongan", async () => {
+    const { guessCompany } = await import("./company");
+    const base = { url: "https://careers.contoh.com/j/1", appName: "" };
+    expect(guessCompany({ ...base, platform: "Situs perusahaan", siteName: "Contoh Teknologi" })).toBe("Contoh Teknologi");
+    expect(guessCompany({ ...base, platform: "Situs perusahaan", siteName: "LinkedIn" })).toBe("Contoh");
+    expect(guessCompany({ ...base, platform: "Glints", siteName: "Glints" })).toBe("");
   });
 });

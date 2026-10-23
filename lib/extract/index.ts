@@ -1,6 +1,8 @@
 import * as cheerio from "cheerio";
 import { detectPlatform } from "../platform";
 import type { ExtractResult, MissingField } from "../types";
+import { fromAts } from "./ats";
+import { guessCompany } from "./company";
 import { fromJsonLd, jsonLdDescription } from "./jsonld";
 import { fromPlatform } from "./platforms";
 import { clean, detectLevel, detectMode, splitTitle } from "./util";
@@ -42,12 +44,17 @@ export function parseJobHtml(html: string, url: string): ExtractResult {
 
   // 2. Parser khusus platform
   fill(data, fromPlatform($, platform));
+  fill(data, fromAts($, url));
 
   // 3. Open Graph / meta
   const meta = (k: string) => clean($(`meta[property="${k}"]`).attr("content")) || clean($(`meta[name="${k}"]`).attr("content"));
   const ogTitle = meta("og:title") || clean($("title").first().text());
   const split = splitTitle(ogTitle, meta("og:site_name"));
   fill(data, { title: split.title, company: split.company, city: split.city ? clean(split.city).split(",")[0] : "" });
+  if (!data.company) {
+    const guess = guessCompany({ url, platform, siteName: meta("og:site_name"), appName: meta("application-name") });
+    if (guess) data.company = guess;
+  }
   const og = meta("og:image");
   if (!data.logoUrl && /^https:\/\//.test(og)) data.logoUrl = og;
 
