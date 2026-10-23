@@ -1,35 +1,27 @@
-/** Deteksi platform dari URL — aman dipakai di client & server. */
-const PLATFORMS: [RegExp, string][] = [
-  [/linkedin\./, "LinkedIn"],
-  [/jobstreet\./, "JobStreet"],
-  [/glints\./, "Glints"],
-  [/kalibrr\./, "Kalibrr"],
-  [/indeed\./, "Indeed"],
-  [/karir\.com/, "Karir.com"],
-  [/dealls\./, "Dealls"],
-  [/kitalulus\./, "KitaLulus"],
-  [/topkarir\./, "TopKarir"],
-  [/techinasia\./, "Tech in Asia"],
-  [/upwork\./, "Upwork"],
-  [/glassdoor\./, "Glassdoor"],
-  [/wellfound\.|angel\.co/, "Wellfound"],
-  [/(lever\.co|jobs\.lever)/, "Lever"],
-  [/greenhouse\.io/, "Greenhouse"],
-  [/workable\.com/, "Workable"],
-  [/ashbyhq\.com/, "Ashby"],
-  [/(twitter|x)\.com/, "X"],
-  [/instagram\./, "Instagram"],
-  [/docs\.google\.com\/forms|forms\.gle/, "Google Form"],
-];
+import type { Platform } from "./types";
 
-export function detectPlatform(url: string): string {
+/** Papan lowongan lain yang bukan situs perusahaan, tapi tidak punya label sendiri. */
+const OTHER_BOARDS = /(^|\.)(indeed|karir|dealls|kitalulus|topkarir|techinasia|glassdoor|wellfound|upwork|instagram|x|twitter|facebook)\.|forms\.gle|docs\.google\.com/;
+
+export function detectPlatform(url: string): Platform | null {
+  let host: string;
   try {
-    const u = new URL(url);
-    const full = u.hostname + u.pathname;
-    for (const [re, name] of PLATFORMS) if (re.test(full)) return name;
-    return u.hostname.replace(/^www\./, "");
+    host = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`).hostname.toLowerCase();
   } catch {
-    return "Lainnya";
+    return null;
   }
+  if (!host.includes(".")) return null;
+  if (/(^|\.)linkedin\./.test(host)) return "LinkedIn";
+  if (/(^|\.)jobstreet\./.test(host)) return "JobStreet";
+  if (/(^|\.)glints\./.test(host)) return "Glints";
+  if (/(^|\.)kalibrr\./.test(host)) return "Kalibrr";
+  if (OTHER_BOARDS.test(host)) return "Lainnya";
+  return "Situs perusahaan";
 }
 
+/** Label chip di langkah 1: 'LinkedIn terdeteksi' / 'Halaman karier perusahaan'. */
+export function detectedLabel(p: Platform) {
+  if (p === "Situs perusahaan") return "Halaman karier perusahaan";
+  if (p === "Lainnya") return "Link lowongan terdeteksi";
+  return `${p} terdeteksi`;
+}

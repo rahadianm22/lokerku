@@ -1,80 +1,69 @@
-export type JobStatus =
-  | "saved"
-  | "applied"
-  | "interview"
-  | "offer"
-  | "rejected"
-  | "archived";
-
-export type WorkMode = "remote" | "hybrid" | "onsite" | "unknown";
+export type Status = "saved" | "applied" | "interview" | "offer" | "rejected" | "archive";
+export type WorkMode = "Remote" | "Hybrid" | "On-site" | "Belum tahu";
+export type JobType = "Full-time" | "Kontrak" | "Part-time" | "Freelance" | "Magang";
+export type Level = "Junior" | "Mid" | "Senior" | "Lead" | "Manager";
+export type Platform = "LinkedIn" | "JobStreet" | "Glints" | "Kalibrr" | "Situs perusahaan" | "Lainnya";
 export type Priority = "low" | "med" | "high";
 
 export interface Job {
   id: string;
   url: string;
-  platform: string; // LinkedIn, Glints, JobStreet, dst.
   company: string;
   title: string;
-  location: string;
-  workMode: WorkMode;
-  employmentType: string; // Full-time, Contract, dst.
-  salary: string; // sudah diformat, mis. "IDR 15–20 jt / bln"
-  seniority: string; // Junior / Mid / Senior / Lead
-  postedAt: string | null; // ISO — tanggal loker diposting (dari sumber)
-  deadline: string | null; // ISO — batas lamar (validThrough)
-  description: string; // ringkasan pendek
-  logo: string | null; // URL logo perusahaan / og:image
-  status: JobStatus;
+  city: string;
+  platform: Platform;
+  mode: WorkMode;
+  type: JobType;
+  level: Level;
+  salary: string;
+  postedAt: string | null; // 'YYYY-MM-DD'
+  deadline: string | null; // 'YYYY-MM-DD'
+  status: Status;
   priority: Priority;
   notes: string;
-  addedAt: string; // ISO — jam kamu kirim link
-  updatedAt: string;
-  appliedAt: string | null;
+  logoUrl?: string;
+  createdAt: number; // epoch ms, kolom "Dikirim"
+  updatedAt: number;
+  /** Tombstone untuk sinkron: loker yang dihapus tetap disimpan sebentar supaya perangkat lain ikut menghapus. */
+  deletedAt?: number | null;
 }
 
-/** Field yang bisa diambil otomatis dari link */
-export type ExtractedJob = Pick<
-  Job,
-  | "url"
-  | "platform"
-  | "company"
-  | "title"
-  | "location"
-  | "workMode"
-  | "employmentType"
-  | "salary"
-  | "seniority"
-  | "postedAt"
-  | "deadline"
-  | "description"
-  | "logo"
->;
+export type Draft = Omit<Job, "id" | "createdAt" | "updatedAt" | "deletedAt">;
 
-export type Confidence = "high" | "partial" | "none";
+export type Confidence = "complete" | "partial" | "failed";
+export type MissingField = "company" | "title" | "city" | "salary" | "postedAt" | "deadline";
 
-export interface ExtractResponse {
-  ok: boolean;
-  data: ExtractedJob;
+export interface ExtractResult {
   confidence: Confidence;
-  source: "json-ld" | "meta" | "url-only";
-  warnings: string[];
+  missing: MissingField[];
+  data: Partial<Omit<Job, "id" | "createdAt" | "updatedAt" | "status" | "priority" | "notes">>;
 }
 
-export const STATUS_META: Record<
-  JobStatus,
-  { label: string; dot: string; chip: string }
-> = {
-  saved: { label: "Disimpan", dot: "bg-slate-400", chip: "status-saved" },
-  applied: { label: "Sudah Apply", dot: "bg-blue-500", chip: "status-applied" },
-  interview: { label: "Interview", dot: "bg-amber-500", chip: "status-interview" },
-  offer: { label: "Offer", dot: "bg-emerald-500", chip: "status-offer" },
-  rejected: { label: "Ditolak", dot: "bg-rose-500", chip: "status-rejected" },
-  archived: { label: "Arsip", dot: "bg-zinc-400", chip: "status-archived" },
+export const STATUSES: Status[] = ["saved", "applied", "interview", "offer", "rejected", "archive"];
+export const STATUS_LABEL: Record<Status, string> = {
+  saved: "Disimpan",
+  applied: "Sudah Apply",
+  interview: "Interview",
+  offer: "Offer",
+  rejected: "Ditolak",
+  archive: "Arsip",
 };
 
-export const WORK_MODE_LABEL: Record<WorkMode, string> = {
-  remote: "Remote",
-  hybrid: "Hybrid",
-  onsite: "On-site",
-  unknown: "—",
+export const MODES: WorkMode[] = ["Remote", "Hybrid", "On-site", "Belum tahu"];
+export const JOB_TYPES: JobType[] = ["Full-time", "Kontrak", "Part-time", "Freelance", "Magang"];
+export const LEVELS: Level[] = ["Junior", "Mid", "Senior", "Lead", "Manager"];
+export const PLATFORMS: Platform[] = ["LinkedIn", "JobStreet", "Glints", "Kalibrr", "Situs perusahaan", "Lainnya"];
+export const PRIORITIES: Priority[] = ["low", "med", "high"];
+export const PRIORITY_LABEL: Record<Priority, string> = { low: "Rendah", med: "Sedang", high: "Tinggi" };
+
+export const FIELD_LABEL: Record<MissingField, string> = {
+  company: "Perusahaan",
+  title: "Posisi",
+  city: "Lokasi",
+  salary: "Gaji",
+  postedAt: "Tanggal posting",
+  deadline: "Deadline",
 };
+
+/** Status yang dianggap sudah selesai: tidak perlu diingatkan soal deadline. */
+export const isClosed = (s: Status) => s === "offer" || s === "rejected" || s === "archive";

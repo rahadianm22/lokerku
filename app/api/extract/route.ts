@@ -1,35 +1,59 @@
 import { NextResponse } from "next/server";
-import { extractFromUrl } from "@/lib/extract";
+import { z } from "zod";
+import { failed, parseJobHtml } from "@/lib/extract";
+import { fetchHtml, FetchBlocked } from "@/lib/extract/fetch";
+import type { ExtractResult } from "@/lib/types";
+import { toHttpUrl } from "@/lib/url";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-/** Tolak alamat lokal/privat supaya endpoint ini tidak jadi proxy ke jaringan internal. */
-function isSafeUrl(raw: string): URL | null {
-  try {
-    const u = new URL(raw);
-    if (!/^https?:$/.test(u.protocol)) return null;
-    const h = u.hostname;
-    if (
-      h === "localhost" ||
-      h.endsWith(".local") ||
-      /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-      h === "[::1]"
-    )
-      return null;
-    return u;
-  } catch {
-    return null;
-  }
+const bodySchema = z.object({ url: z.string().min(4).max(2048) });
+
+const CACHE_TTL = 10 * 60_000;
+const cache = new Map<string, { at: number; result: ExtractResult }>();
+
+function cached(url: string) {
+  const hit = cache.get(url);
+  if (hit && Date.now() - hit.at < CACHE_TTL) return hit.result;
+  cache.delete(url);
+  return null;
+}
+
+function remember(url: string, result: ExtractResult) {
+  if (cache.size > 300) cache.delete(cache.keys().next().value!);
+  cache.set(url, { at: Date.now(), result });
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const url = typeof body?.url === "string" ? body.url.trim() : "";
-  const safe = isSafeUrl(url);
-  if (!safe) {
-    return NextResponse.json({ error: "Link tidak valid. Pakai http(s)://…" }, { status: 400 });
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  if (!rateLimit(`extract:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi sebentar lagi." }, { status: 429 });
   }
-  const result = await extractFromUrl(safe.toString());
+
+  const parsed = bodySchema.safeParse(await req.json().catch(() => null));
+  const url = parsed.success ? toHttpUrl(parsed.data.url) : "";
+  if (!url) return NextResponse.json({ error: "Link tidak valid. Pakai alamat http(s)." }, { status: 400 });
+
+  const hit = cached(url);
+  if (hit) return NextResponse.json(hit);
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10_000);
+  let result: ExtractResult;
+  try {
+    const { html, finalUrl, status } = await fetchHtml(url, ctrl.signal);
+    result = status >= 400 || !html ? failed(url) : parseJobHtml(html, finalUrl);
+    // Simpan link asli yang ditempel pengguna, bukan URL hasil redirect.
+    result.data.url = url;
+  } catch (e) {
+    if (e instanceof FetchBlocked) {
+      return NextResponse.json({ error: "Link ini tidak bisa dibuka dari server Lokerku." }, { status: 400 });
+    }
+    result = failed(url);
+  } finally {
+    clearTimeout(timer);
+  }
+  remember(url, result);
   return NextResponse.json(result);
 }

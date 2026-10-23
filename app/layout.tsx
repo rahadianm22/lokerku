@@ -1,20 +1,32 @@
-import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
+import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
-import { Providers } from "@/components/Providers";
+import { GeistSans } from "geist/font/sans";
+import { Providers } from "@/components/providers";
+import { themeScript } from "@/hooks/use-theme";
+import { authEnabled } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lokerku — pengumpul loker pribadi",
-  description: "Tempel link lowongan, datanya tersimpan rapi di tabel.",
-  robots: { index: false, follow: false },
+  title: { default: "Lokerku: pengumpul loker pribadi", template: "%s · Lokerku" },
+  description:
+    "Tempel link lowongan dari LinkedIn, JobStreet, Glints, Kalibrr, atau situs karier. Lokerku merapikan datanya ke tabel, dan menyimpannya di Google Sheet milikmu.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f3ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#11110e" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="id" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers authEnabled={authEnabled}>{children}</Providers>
       </body>
     </html>
   );
