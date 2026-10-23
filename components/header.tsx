@@ -1,7 +1,8 @@
 "use client";
 
-import { Database, Download, FileUp, LogIn, LogOut, Moon, MoreHorizontal, Plus, RefreshCw, Settings, Sheet, Sun } from "lucide-react";
+import { Database, Download, FileUp, House, LogIn, LogOut, Moon, MoreHorizontal, Plus, RefreshCw, Settings, Sheet, Sun } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import type { Account } from "@/lib/store";
@@ -29,7 +30,8 @@ export function Header({ addRef, ...p }: Props) {
   const menu = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
 
-  const items = () => [...(menu.current?.querySelectorAll<HTMLElement>("[role='menuitem']") ?? [])];
+  // Item yang disembunyikan CSS (mis. "Ke beranda" di desktop) tidak boleh ikut navigasi panah.
+  const items = () => [...(menu.current?.querySelectorAll<HTMLElement>("[role='menuitem']") ?? [])].filter((el) => el.offsetParent !== null);
   const close = (refocus = true) => {
     setOpen(false);
     if (refocus) trigger.current?.focus();
@@ -75,6 +77,10 @@ export function Header({ addRef, ...p }: Props) {
         </h1>
       </div>
       <div className="hd-actions">
+        <Link href="/" className="btn btn-ghost hide-m">
+          <House className="ic" strokeWidth={1.75} aria-hidden />
+          Beranda
+        </Link>
         <button ref={addRef} type="button" className="btn btn-ink" onClick={p.onAdd} aria-keyshortcuts="N">
           <Plus className="ic" strokeWidth={1.75} aria-hidden />
           <span>
@@ -144,6 +150,10 @@ export function Header({ addRef, ...p }: Props) {
                   Restore dari backup…
                 </button>
                 <hr />
+                <Link role="menuitem" tabIndex={-1} href="/" className="menu-item show-m" onClick={() => close(false)}>
+                  <House className="ic" strokeWidth={1.75} aria-hidden />
+                  Ke beranda
+                </Link>
                 <button role="menuitem" tabIndex={-1} type="button" className="menu-item" onClick={() => select(p.onSettings)}>
                   <Settings className="ic" strokeWidth={1.75} aria-hidden />
                   Pengaturan

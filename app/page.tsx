@@ -1,6 +1,5 @@
 import { ArrowRight, Check, Link2, TriangleAlert } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { LoginButton } from "@/components/login-button";
 import { authEnabled, authOptions } from "@/lib/auth";
@@ -20,7 +19,8 @@ const PREVIEW = [
 ];
 
 export default async function Landing({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  if (authEnabled && (await getServerSession(authOptions))) redirect("/app");
+  // Beranda tetap bisa dibuka setelah login (tombol Beranda di tabel mengarah ke sini); CTA-nya yang menyesuaikan.
+  const signedIn = authEnabled && !!(await getServerSession(authOptions));
   const { error } = await searchParams;
   const errorText = error ? (AUTH_ERRORS[error] ?? "Login gagal. Coba sekali lagi.") : null;
 
@@ -59,12 +59,12 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             perusahaan, posisi, lokasi, gaji, dan deadline-nya, lalu menyimpannya ke Google Sheet milikmu.
           </p>
           <div className="ld-cta">
-            {authEnabled && <LoginButton />}
-            <Link href="/app" className={authEnabled ? "btn btn-ghost" : "btn btn-ink"}>
-              {authEnabled ? "Coba tanpa login" : "Buka Lokerku"}
+            {authEnabled && !signedIn && <LoginButton />}
+            <Link href="/app" className={authEnabled && !signedIn ? "btn btn-ghost" : "btn btn-ink"}>
+              {signedIn ? "Buka tabel loker" : authEnabled ? "Coba tanpa login" : "Buka Lokerku"}
             </Link>
           </div>
-          {authEnabled && (
+          {authEnabled && !signedIn && (
             <p className="ld-small">Tanpa login, data hanya tersimpan di browser ini. Kamu bisa masuk kapan saja dan datanya ikut pindah.</p>
           )}
         </div>

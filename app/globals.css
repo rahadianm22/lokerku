@@ -130,6 +130,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .hd { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 40px 0 28px; }
 .hd-actions { display: flex; align-items: center; gap: 8px; }
+/* Di layar lebar tombol Beranda ada di header; di mobile pindah ke menu ⋯ supaya header tidak sesak. */
+.menu-item.show-m { display: none; }
 .menu-wrap { position: relative; }
 
 /* ---------- tombol ---------- */
@@ -571,6 +573,7 @@ input[type="date"].inp { font-family: var(--font-mono); font-size: 13px; }
   .hd-actions .btn { padding: 0 14px; }
   .wordmark { font-size: 42px; }
   .hide-m, .kbd { display: none; }
+  .menu-item.show-m { display: flex; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
   .stats > .stat, .stats > .stat:nth-child(4), .stats > .stat:nth-child(5) { grid-column: auto; }
   .stats > .stat:first-child { grid-column: 1 / -1; min-height: 88px; }

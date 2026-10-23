@@ -151,3 +151,24 @@ test("simpan otomatis tidak membuat loker kembar", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByText(/Menampilkan 1 dari 1 loker/)).toBeVisible();
 });
+
+test("tombol Beranda kembali ke halaman awal, dan tabel bisa dibuka lagi", async ({ page }, info) => {
+  await page.goto("/app");
+  if (info.project.name === "mobile") {
+    // Di mobile tombolnya pindah ke menu ⋯ supaya header tidak sesak.
+    await expect(page.getByRole("link", { name: "Beranda", exact: true })).toBeHidden();
+    await page.getByRole("button", { name: "Menu lainnya" }).click();
+    await page.getByRole("menuitem", { name: "Ke beranda" }).click();
+  } else {
+    // Tombol berada di sebelah kiri "Tambah loker".
+    const home = page.getByRole("link", { name: "Beranda", exact: true });
+    const add = page.getByRole("button", { name: "Tambah loker", exact: true });
+    const [h, a] = await Promise.all([home.boundingBox(), add.boundingBox()]);
+    expect(h!.x + h!.width).toBeLessThanOrEqual(a!.x);
+    await home.click();
+  }
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Semua loker yang kamu incar");
+  await page.getByRole("link", { name: /Coba tanpa login|Buka Lokerku|Buka tabel loker/ }).first().click();
+  await expect(page).toHaveURL(/\/app$/);
+});
