@@ -159,7 +159,7 @@ describe("heuristik", () => {
 
 describe("tebakan perusahaan", () => {
   it("dari alamat ATS dan domain", async () => {
-    const { atsCompany, hostCompany, guessCompany } = await import("./company");
+    const { atsCompany, hostCompany } = await import("./company");
     expect(atsCompany("https://job-boards.eu.greenhouse.io/bitpanda/jobs/1")).toBe("Bitpanda");
     expect(atsCompany("https://jobs.lever.co/acme-corp/abc")).toBe("Acme Corp");
     expect(atsCompany("https://bitpanda.jobs.personio.de/job/1")).toBe("Bitpanda");
