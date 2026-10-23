@@ -4,9 +4,11 @@ import { GeistSans } from "geist/font/sans";
 import { Providers } from "@/components/providers";
 import { themeScript } from "@/hooks/use-theme";
 import { authEnabled } from "@/lib/auth";
+import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: { default: "Lokerku: pengumpul loker pribadi", template: "%s · Lokerku" },
   description:
     "Tempel link lowongan dari LinkedIn, JobStreet, Glints, Kalibrr, atau situs karier. Lokerku merapikan datanya ke tabel, dan menyimpannya di Google Sheet milikmu.",

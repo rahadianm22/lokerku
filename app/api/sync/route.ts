@@ -9,6 +9,8 @@ import { syncRequestSchema } from "@/lib/schema";
 import { HEADER, jobToRow, rowsToJobs } from "@/lib/sheet-codec";
 
 export const runtime = "nodejs";
+// Satu sinkron = beberapa panggilan berurutan ke Drive dan Sheets.
+export const maxDuration = 30;
 
 export type SyncError = "auth" | "scope" | "rate" | "invalid" | "google" | "disabled";
 const fail = (error: SyncError, status: number) => NextResponse.json({ error }, { status });

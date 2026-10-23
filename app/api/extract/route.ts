@@ -7,6 +7,8 @@ import { toHttpUrl } from "@/lib/url";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+// Fetch halaman punya batas 10 detik; beri ruang untuk parsing supaya tidak terpotong di Vercel.
+export const maxDuration = 20;
 
 const bodySchema = z.object({ url: z.string().min(4).max(2048) });
 

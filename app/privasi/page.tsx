@@ -3,6 +3,9 @@ import Link from "next/link";
 
 export const metadata: Metadata = { title: "Kebijakan privasi" };
 
+// Diisi lewat variabel lingkungan supaya alamat email tidak tertanam di kode.
+const CONTACT = process.env.CONTACT_EMAIL?.trim();
+
 export default function Privasi() {
   return (
     <div className="page landing">
@@ -87,7 +90,8 @@ export default function Privasi() {
 
         <h2>Kontak</h2>
         <p>
-          Pertanyaan soal privasi bisa dikirim ke <span className="mono">[EMAIL KONTAK]</span>.
+          Pertanyaan soal privasi bisa dikirim ke{" "}
+          {CONTACT ? <a href={`mailto:${CONTACT}`}>{CONTACT}</a> : <span className="mono">[EMAIL KONTAK, isi lewat CONTACT_EMAIL]</span>}.
         </p>
       </article>
 

@@ -40,6 +40,23 @@ npx playwright test                             # smoke test E2E (desktop 1280 +
 
 Di Vercel, isi empat variabel yang sama di **Project → Settings → Environment Variables**.
 
+## Deploy ke Vercel
+
+1. Import repo ini di [vercel.com/new](https://vercel.com/new). Framework terdeteksi otomatis (Next.js).
+2. **Settings → Environment Variables**, isi untuk Production:
+   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (alamat produksi, mis.
+   `https://lokerku.vercel.app`), dan `CONTACT_EMAIL` (tampil di `/privasi`).
+3. Di Google Cloud, client **Lokerku web**, tambahkan alamat produksi:
+   - Authorized JavaScript origin: `https://lokerku.vercel.app`
+   - Authorized redirect URI: `https://lokerku.vercel.app/api/auth/callback/google`
+4. **Google Auth Platform → Audience → Publish app**. Selama status Testing, hanya Test users yang bisa masuk dan login
+   mereka kedaluwarsa tiap 7 hari.
+5. **Branding**: isi logo, domain, dan link `https://domain/privasi`.
+6. Buat client secret baru kalau secret lama pernah tertempel di chat atau repo, lalu hapus yang lama.
+
+Catatan: batas permintaan dan cache ekstraksi disimpan di memori tiap instance, jadi sifatnya rem darurat, bukan batas
+presisi. Situs seperti LinkedIn lebih sering memblokir permintaan dari server cloud; pengguna tinggal mengisi manual.
+
 ## Cara sinkron bekerja
 
 - Semua perubahan ditulis dulu ke IndexedDB (Dexie), jadi UI tetap cepat dan bisa dipakai offline.
