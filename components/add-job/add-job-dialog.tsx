@@ -188,14 +188,8 @@ export function AddJobDialog({
     else go("link", -1);
   }
 
-  /* Esc, focus trap, Ctrl/⌘+Enter */
+  /* Focus trap & Ctrl/⌘+Enter. Esc ditangani di window (lihat effect di bawah). */
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      if (step === "loading") abort.current?.abort("user");
-      onClose();
-      return;
-    }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && step === "review") {
       e.preventDefault();
       save();
@@ -218,12 +212,30 @@ export function AddJobDialog({
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Pindahkan fokus ke dalam dialog seketika, field yang tepat menyusul setelah animasi masuk.
+    panel.current?.focus();
     if (editing) setTimeout(() => panel.current?.querySelector<HTMLElement>("#f-company")?.focus(), 60);
     return () => {
       document.body.style.overflow = prev;
       abort.current?.abort("user");
     };
   }, [editing]);
+
+  // Esc menutup dialog dari mana pun fokusnya, termasuk sebelum fokus sempat masuk ke dialog.
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      abort.current?.abort("user");
+      closeRef.current();
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, []);
 
   // Saat pindah langkah, fokus ke judul supaya pembaca layar mengumumkan langkah baru.
   const firstRender = useRef(true);
@@ -262,6 +274,8 @@ export function AddJobDialog({
           role="dialog"
           aria-modal="true"
           aria-labelledby="lk-mtitle"
+          tabIndex={-1}
+          style={{ outline: "none" }}
           onKeyDown={onKeyDown}
           {...enter}
           drag={mobile && !reduce ? "y" : false}

@@ -161,7 +161,9 @@ export function Tracker() {
   const closeDialog = useCallback(() => {
     setDialog(null);
     // Kembalikan fokus ke tombol pemicu setelah animasi keluar dimulai.
-    requestAnimationFrame(() => (returnFocus.current?.isConnected ? returnFocus.current : addRef.current)?.focus());
+    // Dibuka lewat hotkey (fokus di body): kembalikan ke tombol Tambah.
+    const back = returnFocus.current;
+    requestAnimationFrame(() => (back?.isConnected && back !== document.body ? back : addRef.current)?.focus());
   }, []);
 
   const openAdd = useCallback(() => openDialog({ kind: "add" }), [openDialog]);

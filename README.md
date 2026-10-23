@@ -1,60 +1,74 @@
-# Lokerku — pengumpul loker pribadi
+# Lokerku
 
-Tempel link lowongan → data diambil otomatis → tersimpan di tabel.
+Pengumpul loker pribadi. Tempel link lowongan, Lokerku mengambil datanya, kamu cek, lalu tersimpan di tabel.
+Kalau pengguna masuk dengan Google, datanya disinkronkan ke spreadsheet **Lokerku** di Google Drive milik mereka sendiri.
 
-## Jalankan
+- `/` landing page publik
+- `/app` tabel loker (bisa dipakai tanpa login = mode tamu)
+- `/privasi` kebijakan privasi (wajib untuk layar persetujuan OAuth Google)
+
+## Menjalankan
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+cp .env.example .env.local   # isi kalau mau login Google; kosong = mode tamu saja
+npm run dev                  # http://localhost:3000
 ```
 
-Shortcut: tekan **N** atau **Ctrl/⌘ + K** untuk buka modal tambah loker.
-Tempel link langsung di input → ekstraksi jalan otomatis.
+Di mode dev, database tamu diisi 5 data contoh sekali (spesifikasi §13).
+
+```bash
+npm run lint && npm run typecheck && npm test   # unit test (vitest)
+npx playwright test                             # smoke test E2E (desktop 1280 + mobile 390)
+```
+
+## Menyiapkan login Google
+
+1. Buka [Google Cloud Console](https://console.cloud.google.com/) dan buat project baru.
+2. **APIs & Services → Library**: aktifkan **Google Drive API** dan **Google Sheets API**.
+3. **APIs & Services → OAuth consent screen** (Google Auth Platform):
+   - User type: **External**.
+   - Isi nama aplikasi, email dukungan, domain, dan link kebijakan privasi (`https://domainmu/privasi`).
+   - **Data access / Scopes**: tambahkan `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`, dan
+     `https://www.googleapis.com/auth/drive.file`. Ketiganya termasuk scope non-sensitif.
+   - Selama status **Testing**, hanya akun yang didaftarkan di *Test users* yang bisa masuk. Untuk dibagikan ke publik,
+     tekan **Publish app**. Google mungkin meminta verifikasi branding (logo, domain) sebelum nama aplikasimu tampil di layar login.
+4. **Credentials → Create credentials → OAuth client ID → Web application**:
+   - Authorized JavaScript origins: `http://localhost:3000` dan `https://domainmu`
+   - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google` dan `https://domainmu/api/auth/callback/google`
+5. Salin Client ID dan Client secret ke `.env.local`, isi `NEXTAUTH_SECRET` (`openssl rand -base64 32`) dan `NEXTAUTH_URL`.
+
+Di Vercel, isi empat variabel yang sama di **Project → Settings → Environment Variables**.
+
+## Cara sinkron bekerja
+
+- Semua perubahan ditulis dulu ke IndexedDB (Dexie), jadi UI tetap cepat dan bisa dipakai offline.
+- 1,2 detik setelah perubahan, saat tab kembali aktif, saat online lagi, dan tiap 2 menit, klien mengirim salinan lokal ke
+  `POST /api/sync`. Server membaca Sheet, menggabungkan per loker (yang `Diubah`-nya lebih baru menang), menulis ulang Sheet
+  bila ada beda, lalu mengembalikan hasilnya.
+- Loker yang dihapus disimpan sebagai *tombstone* (kolom `Dihapus`) selama 30 hari supaya perangkat lain ikut menghapus.
+- Edit manual di Sheet ikut masuk ke aplikasi. Baris yang dihapus langsung dari Sheet bisa muncul lagi dari perangkat lain;
+  hapus lewat Lokerku.
+- Token Google tidak pernah dikirim ke browser. Klien hanya tahu id, nama, email, dan apakah izin Drive diberikan.
+- Saat keluar, salinan lokal akun itu dihapus dari browser. Loker dari mode tamu dipindah ke akun saat pertama kali masuk.
 
 ## Struktur
 
 ```
-lokerku/
-├── app/
-│   ├── api/extract/route.ts   # POST { url } → data loker (server, anti-SSRF)
-│   ├── globals.css            # design tokens (warna, radius, shadow) + keyframes
-│   ├── layout.tsx
-│   └── page.tsx               # halaman utama: state, filter, sort, shortcut
-├── components/
-│   ├── AddJobModal.tsx        # modal 3 tahap: link → loading → review/edit
-│   ├── JobTable.tsx           # tabel (desktop) + kartu (mobile), animasi baris
-│   ├── StatsBar.tsx           # 5 kartu statistik + angka beranimasi
-│   ├── Toolbar.tsx            # filter status (pill animasi), cari, urutkan
-│   ├── Header.tsx             # judul, tombol tambah, menu export/backup
-│   ├── Toast.tsx              # notifikasi + "Batalkan" saat hapus
-│   ├── EmptyState.tsx, CompanyAvatar.tsx, AnimatedNumber.tsx, Providers.tsx
-├── lib/
-│   ├── extract.ts             # parser: JSON-LD JobPosting → fallback OpenGraph/title
-│   ├── platform.ts            # deteksi LinkedIn/JobStreet/Glints/Kalibrr/…
-│   ├── useJobs.ts             # penyimpanan (localStorage) — ganti di sini kalau mau DB
-│   ├── types.ts, format.ts, export.ts
-└── scripts/test-parser.ts     # npx tsx scripts/test-parser.ts
+app/
+  page.tsx                  landing
+  app/page.tsx              tabel loker
+  privasi/page.tsx
+  api/extract/route.ts      POST { url } → hasil ekstraksi (anti-SSRF, cache 10 menit, rate limit)
+  api/sync/route.ts         POST { spreadsheetId, jobs } → hasil gabungan dari Sheet
+  api/auth/[...nextauth]    login Google
+components/                 header, stats, toolbar, tabel, kartu mobile, toast, add-job/*
+lib/
+  types.ts, format.ts       model data & format WIB (diuji)
+  db.ts, store.tsx          Dexie per akun + mesin sinkron
+  merge.ts, sheet-codec.ts  penggabungan & konversi baris Sheet (diuji)
+  google.ts, auth.ts        Drive/Sheets REST + next-auth
+  extract/                  JSON-LD, meta, parser per platform, fixture test
+hooks/                      tema, hotkey, count-up, media query
+e2e/                        smoke test Playwright
 ```
-
-## Kolom yang tersimpan
-
-| Field | Sumber |
-|---|---|
-| Perusahaan, Posisi, Logo | JSON-LD `hiringOrganization` / `og:title` |
-| Lokasi, Mode kerja (Remote/Hybrid/On-site) | `jobLocation`, `jobLocationType`, teks deskripsi |
-| Tipe kerja, Gaji | `employmentType`, `baseSalary` |
-| Level (Intern…Lead) | dideteksi dari judul |
-| Tanggal posting, Deadline | `datePosted`, `validThrough` |
-| **Dikirim** (jam kamu tempel link) | otomatis saat simpan (WIB) |
-| Platform | dari domain link |
-| Status, Prioritas, Catatan, Tanggal apply | diisi kamu |
-
-## Catatan
-
-- **LinkedIn / beberapa situs** kadang minta login atau memblokir server → modal
-  otomatis pindah ke mode isi manual (link tetap tersimpan).
-- Data disimpan di **localStorage** browser. Backup/restore lewat menu ⋯.
-  Mau sync HP–laptop? Ganti isi `lib/useJobs.ts` dengan Supabase/Turso; komponen lain tidak berubah.
-- Deploy: `vercel` — tidak butuh env var.
-- Ganti tampilan: ubah token di `app/globals.css` (`:root` dan blok dark mode).

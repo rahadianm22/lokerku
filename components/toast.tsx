@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent } from "motion/react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 type ToastData = { id: number; message: string; undo?: () => void };
@@ -9,6 +9,24 @@ type Show = (message: string, undo?: () => void) => void;
 
 const Ctx = createContext<Show>(() => {});
 export const useToast = () => useContext(Ctx);
+
+/** Toast yang sedang animasi keluar dibuat inert, supaya "Batalkan"-nya tidak bisa ikut terklik. */
+function ToastBody({ toast, onUndo }: { toast: ToastData; onUndo: () => void }) {
+  const present = useIsPresent();
+  return (
+    <div className="toast-body" inert={!present} aria-hidden={!present || undefined}>
+      <span className="msg">
+        <Check className="ic" strokeWidth={2} aria-hidden />
+        {toast.message}
+      </span>
+      {toast.undo && (
+        <button type="button" className="toast-undo" onClick={onUndo}>
+          Batalkan
+        </button>
+      )}
+    </div>
+  );
+}
 
 /** Satu toast sekaligus. Hilang sendiri setelah 5 detik, berhenti saat di-hover atau difokus. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -45,23 +63,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               onFocus={() => setPaused(true)}
               onBlur={() => setPaused(false)}
             >
-              <span className="msg">
-                <Check className="ic" strokeWidth={2} aria-hidden />
-                {toast.message}
-              </span>
-              {toast.undo && (
-                <button
-                  type="button"
-                  className="toast-undo"
-                  onClick={() => {
-                    toast.undo?.();
-                    setToast(null);
-                    setPaused(false);
-                  }}
-                >
-                  Batalkan
-                </button>
-              )}
+              <ToastBody
+                toast={toast}
+                onUndo={() => {
+                  toast.undo?.();
+                  setToast(null);
+                  setPaused(false);
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>

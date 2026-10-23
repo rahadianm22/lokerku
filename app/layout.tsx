@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   title: { default: "Lokerku: pengumpul loker pribadi", template: "%s · Lokerku" },
   description:
     "Tempel link lowongan dari LinkedIn, JobStreet, Glints, Kalibrr, atau situs karier. Lokerku merapikan datanya ke tabel, dan menyimpannya di Google Sheet milikmu.",
+  // TODO: ikon aplikasi belum ditentukan pemilik produk. Sementara kosong supaya browser tidak meminta /favicon.ico.
+  icons: { icon: "data:," },
 };
 
 export const viewport: Viewport = {

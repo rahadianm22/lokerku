@@ -26,7 +26,11 @@ export function StepLink({
   const platform = toHttpUrl(url) ? detectPlatform(url) : null;
 
   useEffect(() => {
-    const t = setTimeout(() => input.current?.focus(), 60);
+    // Jangan rebut fokus kalau dialog sudah ditutup (mis. Esc dalam 60ms pertama) dan fokus sudah dikembalikan.
+    const t = setTimeout(() => {
+      const a = document.activeElement;
+      if (!a || a === document.body || a.getAttribute("role") === "dialog") input.current?.focus();
+    }, 60);
     return () => clearTimeout(t);
   }, []);
 

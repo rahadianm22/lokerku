@@ -59,12 +59,12 @@ export function JobTable({ jobs, now, flashId, ...h }: { jobs: Job[]; now: numbe
     <div className="desk tbl-scroll">
       <table className="tbl">
         <colgroup>
-          <col style={{ width: "30%" }} />
+          <col style={{ width: "28%" }} />
           <col style={{ width: "13%" }} />
-          <col style={{ width: "15%" }} />
+          <col style={{ width: "14%" }} />
           <col style={{ width: "11%" }} />
           <col style={{ width: "14%" }} />
-          <col style={{ width: "9%" }} />
+          <col style={{ width: "11%" }} />
           <col style={{ width: 120 }} />
         </colgroup>
         <thead>
