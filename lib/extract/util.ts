@@ -56,7 +56,7 @@ export function mapEmploymentType(v: unknown): JobType | undefined {
 
 /** Hilangkan suffix situs dari judul halaman: "… | LinkedIn", "… - JobStreet". */
 export function stripSiteSuffix(s: string, siteName = "") {
-  let out = clean(s).replace(/\s*[|–—-]\s*(LinkedIn|Glints|JobStreet|Kalibrr|Indeed|Dealls|KitaLulus|Glassdoor)(\s.*)?$/i, "");
+  let out = clean(s).replace(/\s*[|–—-]\s*(LinkedIn|Glints|JobStreet|Kalibrr|Indeed|Dealls|KitaLulus|Karir\.com|TopKarir|Glassdoor|Wellfound|Tech in Asia)(\s.*)?$/i, "");
   if (siteName) {
     const esc = siteName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     out = out.replace(new RegExp(`\\s*[|–—-]\\s*${esc}.*$`, "i"), "");

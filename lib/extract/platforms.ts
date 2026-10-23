@@ -51,11 +51,26 @@ function kalibrr($: CheerioAPI): Data {
   };
 }
 
+/** Indeed memakai atribut data-testid pada halaman lowongannya. Sering memblokir server, lalu hasilnya "tidak terbaca". */
+function indeed($: CheerioAPI): Data {
+  return {
+    title: text($, '[data-testid="jobsearch-JobInfoHeader-title"], h1.jobsearch-JobInfoHeader-title'),
+    company: text($, '[data-testid="inlineHeader-companyName"]'),
+    city: text($, '[data-testid="inlineHeader-companyLocation"], [data-testid="job-location"]').split(",")[0]?.trim() ?? "",
+    salary: formatSalaryText(text($, "#salaryInfoAndJobType, [data-testid='attribute_snippet_testid']")),
+  };
+}
+
+/**
+ * Platform lain (Dealls, KitaLulus, Karir.com, TopKarir, Glassdoor, dll.) sengaja tidak punya parser:
+ * mereka dibaca dari data lowongan terstruktur (JSON-LD) dan meta tag. Selector tanpa contoh nyata hanya tebakan.
+ */
 const PARSERS: Partial<Record<Platform, ($: CheerioAPI) => Data>> = {
   LinkedIn: linkedin,
   JobStreet: jobstreet,
   Glints: glints,
   Kalibrr: kalibrr,
+  Indeed: indeed,
 };
 
 export function fromPlatform($: CheerioAPI, platform: Platform): Data {

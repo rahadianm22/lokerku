@@ -17,7 +17,7 @@ export function EmptyState({ onAdd }: { onAdd: () => void }) {
       </motion.div>
       <h2>Belum ada loker tersimpan</h2>
       <p>
-        Tempel link lowongan dari LinkedIn, JobStreet, Glints, Kalibrr, atau situs karier perusahaan. Lokerku yang
+        Tempel link lowongan dari LinkedIn, JobStreet, Glints, Kalibrr, Indeed, Dealls, atau situs karier perusahaan. Lokerku yang
         merapikan datanya.
       </p>
       <button type="button" className="btn btn-ink" onClick={onAdd} aria-keyshortcuts="N">

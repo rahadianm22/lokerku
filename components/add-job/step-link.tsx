@@ -3,7 +3,7 @@
 import { Check, ClipboardPaste, Link2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef } from "react";
-import { detectedLabel, detectPlatform } from "@/lib/platform";
+import { detectedLabel, detectPlatform, SUPPORTED_DOMAINS } from "@/lib/platform";
 import type { Job } from "@/lib/types";
 import { toHttpUrl } from "@/lib/url";
 
@@ -121,14 +121,15 @@ export function StepLink({
         </div>
       )}
       <p id="lk-url-help" className="help">
-        Didukung: LinkedIn, JobStreet, Glints, Kalibrr, dan halaman karier perusahaan. Kalau halaman tidak terbaca, kamu
-        tetap bisa isi manual.
+        Didukung: LinkedIn, JobStreet, Glints, Kalibrr, Indeed, Dealls, KitaLulus, dan halaman karier perusahaan. Kalau
+        halaman tidak terbaca, kamu tetap bisa isi manual.
       </p>
       <div className="sites" aria-hidden="true">
-        <span className="tag">linkedin.com</span>
-        <span className="tag">jobstreet.co.id</span>
-        <span className="tag">glints.com</span>
-        <span className="tag">kalibrr.com</span>
+        {SUPPORTED_DOMAINS.map((d) => (
+          <span key={d} className="tag">
+            {d}
+          </span>
+        ))}
         <span className="tag">karier.perusahaan.com</span>
       </div>
     </form>

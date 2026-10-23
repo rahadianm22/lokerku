@@ -55,7 +55,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             Semua loker yang kamu incar, <span className="mark">rapi di satu tabel.</span>
           </h1>
           <p className="ld-lead">
-            Tempel link dari LinkedIn, JobStreet, Glints, Kalibrr, atau situs karier perusahaan. Lokerku mengambil nama
+            Tempel link dari LinkedIn, JobStreet, Glints, Kalibrr, Indeed, Dealls, KitaLulus, atau situs karier perusahaan. Lokerku mengambil nama
             perusahaan, posisi, lokasi, gaji, dan deadline-nya, lalu menyimpannya ke Google Sheet milikmu.
           </p>
           <div className="ld-cta">

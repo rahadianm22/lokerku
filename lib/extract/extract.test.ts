@@ -53,6 +53,18 @@ describe("parser terhadap fixture", () => {
     });
   });
 
+  it("Indeed DOM → complete, gaji dirapikan", () => {
+    const r = parseJobHtml(fixture("indeed-dom.html"), "https://id.indeed.com/viewjob?jk=abc");
+    expect(r.confidence).toBe("complete");
+    expect(r.data).toMatchObject({
+      platform: "Indeed",
+      title: "Marketing Executive",
+      company: "Contoh Dagang",
+      city: "Bandung",
+      salary: "Rp 6–8 jt",
+    });
+  });
+
   it("halaman login → failed", () => {
     const r = parseJobHtml(fixture("login-wall.html"), "https://www.linkedin.com/jobs/view/1");
     expect(r.confidence).toBe("failed");

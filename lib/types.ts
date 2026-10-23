@@ -2,7 +2,12 @@ export type Status = "saved" | "applied" | "interview" | "offer" | "rejected" | 
 export type WorkMode = "Remote" | "Hybrid" | "On-site" | "Belum tahu";
 export type JobType = "Full-time" | "Kontrak" | "Part-time" | "Freelance" | "Magang";
 export type Level = "Junior" | "Mid" | "Senior" | "Lead" | "Manager";
-export type Platform = "LinkedIn" | "JobStreet" | "Glints" | "Kalibrr" | "Situs perusahaan" | "Lainnya";
+/** Urutan = urutan di pilihan Platform. Papan lowongan besar dulu, lalu situs perusahaan, lalu sisanya. */
+export const PLATFORMS = [
+  "LinkedIn", "JobStreet", "Glints", "Kalibrr", "Indeed", "Dealls", "KitaLulus", "Karir.com", "TopKarir",
+  "Glassdoor", "Tech in Asia", "Wellfound", "Instagram", "X", "Situs perusahaan", "Lainnya",
+] as const;
+export type Platform = (typeof PLATFORMS)[number];
 export type Priority = "low" | "med" | "high";
 
 export interface Job {
@@ -52,7 +57,6 @@ export const STATUS_LABEL: Record<Status, string> = {
 export const MODES: WorkMode[] = ["Remote", "Hybrid", "On-site", "Belum tahu"];
 export const JOB_TYPES: JobType[] = ["Full-time", "Kontrak", "Part-time", "Freelance", "Magang"];
 export const LEVELS: Level[] = ["Junior", "Mid", "Senior", "Lead", "Manager"];
-export const PLATFORMS: Platform[] = ["LinkedIn", "JobStreet", "Glints", "Kalibrr", "Situs perusahaan", "Lainnya"];
 export const PRIORITIES: Priority[] = ["low", "med", "high"];
 export const PRIORITY_LABEL: Record<Priority, string> = { low: "Rendah", med: "Sedang", high: "Tinggi" };
 
