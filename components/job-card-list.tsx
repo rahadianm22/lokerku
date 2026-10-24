@@ -7,7 +7,7 @@ import type { Job } from "@/lib/types";
 import { CompanyAvatar } from "./company-avatar";
 import { DeadlineBadge } from "./deadline-badge";
 import { JobMeta, OpenLink, PriorityFlag, ROW_ENTER, ROW_EXIT, type RowHandlers } from "./job-table";
-import { StatusChip } from "./status-chip";
+import { StatusSelect } from "./status-chip";
 
 export function JobCardList({ jobs, now, flashId, ...h }: { jobs: Job[]; now: number; flashId: string | null } & RowHandlers) {
   return (
@@ -33,7 +33,7 @@ export function JobCardList({ jobs, now, flashId, ...h }: { jobs: Job[]; now: nu
               </div>
             </div>
             <div className="mc-row">
-              <StatusChip status={j.status} title={j.title} onChange={(s) => h.onStatus(j, s)} />
+              <StatusSelect status={j.status} title={j.title} onChange={(s) => h.onStatus(j, s)} />
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
                   {fmtDateShort(j.deadline) || "Tanpa deadline"}

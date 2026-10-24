@@ -113,7 +113,7 @@ test("pengaturan: simpan otomatis saat link ditempel, bertahan setelah reload", 
   await expect(page.getByText("Loker disimpan ke tabel")).toBeVisible();
   const row = mobile ? page.getByRole("article", { name: /Data Analyst Otomatis/ }) : page.getByRole("row", { name: /Data Analyst Otomatis/ });
   await expect(row).toBeVisible();
-  await expect(row.getByText("Sudah Apply").first()).toBeVisible(); // status awal dari Pengaturan
+  await expect(row.getByLabel(/Ubah status/)).toHaveValue("applied"); // status awal dari Pengaturan
 
   // Pengaturan bertahan setelah reload
   await page.reload();
@@ -233,4 +233,29 @@ test("situs memblokir server: banner menyebut kode dan alasannya, teks halaman b
   await expect(dialog.getByLabel("Perusahaan")).toHaveValue("Contoh Sehat");
   await expect(dialog.getByLabel("Posisi")).toHaveValue("Senior Product Designer");
   await expect(dialog.getByLabel("Deadline")).toHaveValue(/2026-10-31/);
+});
+
+test("ganti status lewat dropdown di baris/kartu, dan dropdown kartu mobile terlihat jelas", async ({ page }, info) => {
+  const mobile = info.project.name === "mobile";
+  await page.goto("/app");
+  await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Isi manual saja" }).click();
+  await dialog.getByLabel("Perusahaan").fill("PT Status Uji");
+  await dialog.getByLabel("Posisi").fill("Analis Status");
+  await dialog.getByRole("button", { name: "Simpan ke tabel" }).click();
+  await expect(dialog).toBeHidden();
+
+  const select = page.getByLabel("Ubah status Analis Status").locator("visible=true");
+  if (mobile) {
+    // Berpinggir dan berlabel, bukan chip tanpa pinggir; tinggi sentuh 44px.
+    await expect(page.locator(".status-cap").first()).toBeVisible();
+    const box = await select.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    const border = await page.locator(".status-select").first().evaluate((e) => getComputedStyle(e).borderTopWidth);
+    expect(border).toBe("1px");
+  }
+  await select.selectOption("interview");
+  await expect(page.getByText("Status diubah ke Interview")).toBeVisible();
+  await expect(select).toHaveValue("interview");
 });
