@@ -420,6 +420,12 @@ input[type="date"].inp { font-family: var(--font-mono); font-size: 13px; }
 .notice p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
 .notice strong { font-weight: 600; }
 
+/* ---------- tempel teks lowongan ---------- */
+.paste-box { margin: 0 0 18px; padding: 12px 14px; border: 1px dashed var(--field-line); border-radius: 12px; background: var(--surface-2); }
+.paste-box summary { cursor: pointer; font-size: 13.5px; font-weight: 600; border-radius: 6px; }
+.paste-box textarea.inp { height: 120px; margin-top: 10px; }
+.paste-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+
 /* ---------- pengaturan ---------- */
 .set-sec { padding: 20px 0; border-top: 1px solid var(--line); }
 .set-sec:first-child { padding-top: 4px; border-top: 0; }

@@ -2,6 +2,7 @@
 
 import { ChevronDown, Info } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { CompanyAvatar } from "../company-avatar";
 import {
   JOB_TYPES, LEVELS, MODES, PLATFORMS, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL,
@@ -49,6 +50,8 @@ export function StepReview({
   missing,
   editing,
   showUrl,
+  loginOnly,
+  onFillFromText,
 }: {
   draft: Draft;
   set: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
@@ -57,6 +60,10 @@ export function StepReview({
   editing: boolean;
   /** Field link tampil saat edit, atau saat isi manual tanpa link. */
   showUrl: boolean;
+  /** Server tidak boleh membaca isinya (Instagram, X): banner menjelaskan alasannya. */
+  loginOnly: boolean;
+  /** Isi kolom kosong dari teks yang ditempel; mengembalikan label kolom yang terisi. */
+  onFillFromText: (text: string) => string[];
 }) {
   const miss = (k: MissingField) => missing.includes(k) && !String(draft[k] ?? "").trim();
   const cls = (k: MissingField, extra = "") => `inp${extra}${miss(k) ? " missing" : ""}`;
@@ -80,7 +87,8 @@ export function StepReview({
         </div>
       </div>
 
-      {confidence && !editing ? <ConfidenceBanner confidence={confidence} missing={missing} /> : <div style={{ height: 18 }} />}
+      {confidence && !editing ? <ConfidenceBanner confidence={confidence} missing={missing} loginOnly={loginOnly} /> : <div style={{ height: 18 }} />}
+      {!editing && (confidence === "failed" || confidence === null) && <TextPaste onFill={onFillFromText} defaultOpen={loginOnly} />}
 
       <div className="form">
         <motion.div className="fld" {...fieldAnim(n++)}>
@@ -157,5 +165,45 @@ export function StepReview({
         </motion.div>
       </div>
     </div>
+  );
+}
+
+function TextPaste({ onFill, defaultOpen }: { onFill: (text: string) => string[]; defaultOpen: boolean }) {
+  const [text, setText] = useState("");
+  const [msg, setMsg] = useState("");
+  return (
+    <details className="paste-box" open={defaultOpen || undefined}>
+      <summary>Tempel teks lowongan</summary>
+      <p className="set-hint" style={{ marginTop: 8 }}>
+        Salin caption atau pesan lowongannya, lalu tempel di sini. Lokerku mengisi kolom yang polanya jelas dan tidak menimpa yang sudah kamu isi.
+      </p>
+      <label className="sr-only" htmlFor="f-paste">
+        Teks lowongan
+      </label>
+      <textarea id="f-paste" className="inp" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tempel caption atau pesan lowongan di sini…" maxLength={5000} />
+      <div className="paste-actions">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={!text.trim()}
+          onClick={() => {
+            const filled = onFill(text);
+            const fields = filled.filter((l) => l !== "Catatan");
+            setMsg(
+              fields.length
+                ? `Terisi: ${filled.join(", ")}. Cek lagi sebelum menyimpan.`
+                : filled.length
+                  ? "Teks disimpan di Catatan. Kolom lain tidak ketemu polanya, isi manual ya."
+                  : "Tidak ada kolom kosong yang bisa diisi dari teks ini.",
+            );
+          }}
+        >
+          Isi dari teks
+        </button>
+        <span role="status" aria-live="polite" className="set-hint" style={{ margin: 0 }}>
+          {msg}
+        </span>
+      </div>
+    </details>
   );
 }

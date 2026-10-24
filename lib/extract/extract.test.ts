@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseJobHtml, scored } from ".";
+import { isLoginOnly, parseJobHtml, scored } from ".";
 import { formatSalary } from "./salary";
 import { formatSalaryText } from "./salary-text";
 import { detectLevel, detectMode, mapEmploymentType, splitTitle } from "./util";
@@ -77,6 +77,21 @@ describe("parser terhadap fixture", () => {
     expect(r.data.logoUrl).toContain("greenhouse.io");
     expect(r.missing).toEqual(["salary", "postedAt", "deadline"]);
     expect(r.confidence).toBe("partial");
+  });
+
+  it("cangkang Instagram (judul cuma 'Instagram') → failed, bukan judul posisi", () => {
+    const r = parseJobHtml("<html><head><title>Instagram</title></head><body></body></html>", "https://www.instagram.com/p/abc/");
+    expect(r.confidence).toBe("failed");
+    expect(r.data.title).toBeUndefined();
+    expect(r.data.platform).toBe("Instagram");
+  });
+
+  it("isLoginOnly: Instagram dan X saja", () => {
+    expect(isLoginOnly("https://www.instagram.com/p/abc/")).toBe(true);
+    expect(isLoginOnly("https://x.com/a/status/1")).toBe(true);
+    expect(isLoginOnly("https://twitter.com/a/status/1")).toBe(true);
+    expect(isLoginOnly("https://www.linkedin.com/jobs/view/1")).toBe(false);
+    expect(isLoginOnly("https://careers.contoh.com/j/1")).toBe(false);
   });
 
   it("halaman login → failed", () => {

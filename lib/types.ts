@@ -41,6 +41,8 @@ export type MissingField = "company" | "title" | "city" | "salary" | "postedAt" 
 export interface ExtractResult {
   confidence: Confidence;
   missing: MissingField[];
+  /** "login-required": platformnya tidak mengizinkan membaca isi postingan tanpa login (Instagram, X). */
+  note?: "login-required";
   data: Partial<Omit<Job, "id" | "createdAt" | "updatedAt" | "status" | "priority" | "notes">>;
 }
 

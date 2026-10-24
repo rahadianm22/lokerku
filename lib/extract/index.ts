@@ -27,13 +27,22 @@ function fill(into: Data, from: Data) {
   }
 }
 
-export function failed(url: string): ExtractResult {
-  return { confidence: "failed", missing: [...KEY_FIELDS], data: { url, platform: detectPlatform(url) ?? "Lainnya" } };
+export function failed(url: string, note?: ExtractResult["note"]): ExtractResult {
+  return { confidence: "failed", missing: [...KEY_FIELDS], ...(note ? { note } : {}), data: { url, platform: detectPlatform(url) ?? "Lainnya" } };
 }
+
+/** Isi postingannya hanya tampil setelah login: server tidak mencoba membacanya dan tidak mencoba melewati login. */
+export function isLoginOnly(url: string) {
+  const p = detectPlatform(url);
+  return p === "Instagram" || p === "X";
+}
+
+/** Judul cangkang/halaman pembatas yang bukan nama posisi atau perusahaan. */
+const GENERIC = /^(instagram|x|twitter|facebook|linkedin|login|log in|sign in|sign up|masuk|just a moment\.{0,3}|attention required.*|home|beranda|jobs?|careers?|karir|karier|lowongan(?: kerja)?)$/i;
 
 export function parseJobHtml(html: string, url: string): ExtractResult {
   const $ = cheerio.load(html);
-  if (looksBlocked(html, $)) return failed(url);
+  if (looksBlocked(html, $)) return failed(url, "login-required");
 
   const platform = detectPlatform(url) ?? "Lainnya";
   const data: Data = { url, platform };
@@ -63,6 +72,8 @@ export function parseJobHtml(html: string, url: string): ExtractResult {
   if (!data.mode) data.mode = detectMode(data.title ?? "", data.city ?? "", desc, jsonLdDescription($));
   if (!data.level && data.title) data.level = detectLevel(data.title);
   for (const k of Object.keys(data) as (keyof Data)[]) if (data[k] === undefined) delete data[k];
+  // Judul generik ("Instagram", "Login") bukan data: lebih jujur dianggap tidak terbaca.
+  for (const k of ["title", "company"] as const) if (data[k] && GENERIC.test(data[k]!.trim())) delete data[k];
 
   return scored(data);
 }

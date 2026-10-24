@@ -8,6 +8,7 @@ import { detectPlatform } from "@/lib/platform";
 import type { Settings } from "@/lib/settings";
 import type { Confidence, Draft, ExtractResult, Job, MissingField } from "@/lib/types";
 import { normalizeUrl, toHttpUrl } from "@/lib/url";
+import { parsePostText } from "@/lib/extract/text";
 import { StepLink } from "./step-link";
 import { StepLoading } from "./step-loading";
 import { StepReview } from "./step-review";
@@ -77,6 +78,7 @@ export function AddJobDialog({
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<Draft>(editing ? toDraft(editing) : blank("", settings));
   const [confidence, setConfidence] = useState<Confidence | null>(null);
+  const [loginOnly, setLoginOnly] = useState(false);
   const [missing, setMissing] = useState<MissingField[]>([]);
   const [showUrl, setShowUrl] = useState(!!editing);
   const abort = useRef<AbortController | null>(null);
@@ -163,6 +165,7 @@ export function AddJobDialog({
     }
     setDraft(filled);
     setConfidence(result.confidence);
+    setLoginOnly(result.note === "login-required");
     setMissing(result.confidence === "failed" ? ["company", "title", "city", "salary", "postedAt", "deadline"] : result.missing);
     setShowUrl(false);
     go("review", 1);
@@ -171,6 +174,28 @@ export function AddJobDialog({
   function cancelFetch() {
     abort.current?.abort("user");
     go("link", -1);
+  }
+
+  /** Isi hanya kolom yang masih kosong (atau masih bawaan), supaya isian pengguna tidak tertimpa. */
+  function fillFromText(text: string): string[] {
+    const f = parsePostText(text);
+    const next: Draft = { ...draft };
+    const filled: string[] = [];
+    const take = <K extends keyof Draft>(k: K, label: string, v: Draft[K] | undefined, isEmpty: boolean) => {
+      if (v === undefined || v === "" || !isEmpty) return;
+      next[k] = v;
+      filled.push(label);
+    };
+    take("title", "Posisi", f.title, !draft.title.trim());
+    take("company", "Perusahaan", f.company, !draft.company.trim());
+    take("city", "Lokasi", f.city, !draft.city.trim());
+    take("salary", "Gaji", f.salary, !draft.salary.trim());
+    take("deadline", "Deadline", f.deadline ?? undefined, !draft.deadline);
+    take("mode", "Mode kerja", f.mode, draft.mode === "Belum tahu");
+    take("level", "Level", f.level, draft.level === "Mid");
+    take("notes", "Catatan", f.notes, !draft.notes.trim());
+    setDraft(next);
+    return filled;
   }
 
   function manual() {
@@ -348,7 +373,7 @@ export function AddJobDialog({
                 )}
                 {step === "loading" && <StepLoading url={url} />}
                 {step === "review" && (
-                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} />
+                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} loginOnly={loginOnly} onFillFromText={fillFromText} />
                 )}
               </motion.div>
             </AnimatePresence>

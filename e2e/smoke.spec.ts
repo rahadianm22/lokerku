@@ -172,3 +172,37 @@ test("tombol Beranda kembali ke halaman awal, dan tabel bisa dibuka lagi", async
   await page.getByRole("link", { name: /Coba tanpa login|Buka Lokerku|Buka tabel loker/ }).first().click();
   await expect(page).toHaveURL(/\/app$/);
 });
+
+test("Instagram: dijelaskan butuh login, teks postingan ditempel mengisi kolom tanpa menimpa isian", async ({ page }) => {
+  await page.route("**/api/extract", (route) =>
+    route.fulfill({
+      json: {
+        confidence: "failed",
+        missing: ["company", "title", "city", "salary", "postedAt", "deadline"],
+        note: "login-required",
+        data: { url: "https://www.instagram.com/p/ABC123/", platform: "Instagram" },
+      },
+    }),
+  );
+  await page.goto("/app");
+  await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.locator("#lk-url").fill("https://www.instagram.com/p/ABC123/");
+  await dialog.getByRole("button", { name: "Ambil data" }).click();
+
+  await expect(dialog.getByText("Postingan ini hanya terbuka setelah login")).toBeVisible();
+  // Judul generik "Instagram" tidak boleh jadi nama posisi.
+  await expect(dialog.getByLabel("Posisi")).toHaveValue("");
+
+  await dialog.getByLabel("Perusahaan").fill("Isian Saya"); // tidak boleh tertimpa
+  await dialog.getByLabel("Teks lowongan").fill("UI/UX DESIGNER, WE NEED YOU!\nStudio Contoh lagi cari partner.\nPositions Available: UI/UX Designer\nLokasi: Bandung");
+  await dialog.getByRole("button", { name: "Isi dari teks" }).click();
+
+  await expect(dialog.getByText(/Terisi: Posisi, Lokasi/)).toBeVisible();
+  await expect(dialog.getByLabel("Posisi")).toHaveValue("UI/UX Designer");
+  await expect(dialog.getByLabel("Lokasi")).toHaveValue("Bandung");
+  await expect(dialog.getByLabel("Perusahaan")).toHaveValue("Isian Saya");
+  await dialog.getByRole("button", { name: "Simpan ke tabel" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(/Menampilkan 1 dari 1 loker/)).toBeVisible();
+});

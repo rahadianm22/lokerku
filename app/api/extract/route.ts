@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { failed, parseJobHtml } from "@/lib/extract";
+import { failed, isLoginOnly, parseJobHtml } from "@/lib/extract";
 import { fetchHtml, FetchBlocked } from "@/lib/extract/fetch";
 import type { ExtractResult } from "@/lib/types";
 import { toHttpUrl } from "@/lib/url";
@@ -39,6 +39,13 @@ export async function POST(req: Request) {
 
   const hit = cached(url);
   if (hit) return NextResponse.json(hit);
+
+  // Instagram dan X menyembunyikan isi postingan di balik login. Tidak ada gunanya (dan tidak sopan) membuka halamannya.
+  if (isLoginOnly(url)) {
+    const result = failed(url, "login-required");
+    remember(url, result);
+    return NextResponse.json(result);
+  }
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10_000);

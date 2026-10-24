@@ -6,7 +6,7 @@ function joinId(list: string[]) {
   return `${list.slice(0, -1).join(", ")} dan ${list[list.length - 1]}`;
 }
 
-export function ConfidenceBanner({ confidence, missing }: { confidence: Confidence; missing: MissingField[] }) {
+export function ConfidenceBanner({ confidence, missing, loginOnly }: { confidence: Confidence; missing: MissingField[]; loginOnly?: boolean }) {
   if (confidence === "complete") {
     return (
       <div className="banner b-complete" role="status">
@@ -37,7 +37,11 @@ export function ConfidenceBanner({ confidence, missing }: { confidence: Confiden
       <AlertCircle className="ic" strokeWidth={1.75} aria-hidden />
       <div>
         <strong>Halaman tidak bisa dibaca</strong>
-        <p>Mungkin perlu login atau situsnya membatasi akses. Isi data secara manual, link tetap disimpan.</p>
+        {loginOnly ? (
+          <p>Postingan ini hanya terbuka setelah login, jadi Lokerku tidak bisa membacanya. Tempel teks postingannya di bawah, atau isi manual. Link tetap disimpan.</p>
+        ) : (
+          <p>Mungkin perlu login atau situsnya membatasi akses. Isi data secara manual, link tetap disimpan.</p>
+        )}
       </div>
     </div>
   );
