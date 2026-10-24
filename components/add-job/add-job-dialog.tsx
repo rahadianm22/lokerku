@@ -78,7 +78,8 @@ export function AddJobDialog({
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<Draft>(editing ? toDraft(editing) : blank("", settings));
   const [confidence, setConfidence] = useState<Confidence | null>(null);
-  const [loginOnly, setLoginOnly] = useState(false);
+  const [note, setNote] = useState<ExtractResult["note"]>(undefined);
+  const [httpStatus, setHttpStatus] = useState<number | undefined>(undefined);
   const [missing, setMissing] = useState<MissingField[]>([]);
   const [showUrl, setShowUrl] = useState(!!editing);
   const abort = useRef<AbortController | null>(null);
@@ -165,7 +166,8 @@ export function AddJobDialog({
     }
     setDraft(filled);
     setConfidence(result.confidence);
-    setLoginOnly(result.note === "login-required");
+    setNote(result.note);
+    setHttpStatus(result.httpStatus);
     setMissing(result.confidence === "failed" ? ["company", "title", "city", "salary", "postedAt", "deadline"] : result.missing);
     setShowUrl(false);
     go("review", 1);
@@ -193,6 +195,7 @@ export function AddJobDialog({
     take("deadline", "Deadline", f.deadline ?? undefined, !draft.deadline);
     take("mode", "Mode kerja", f.mode, draft.mode === "Belum tahu");
     take("level", "Level", f.level, draft.level === "Mid");
+    take("type", "Tipe", f.type && f.type !== draft.type ? f.type : undefined, draft.type === "Full-time");
     take("notes", "Catatan", f.notes, !draft.notes.trim());
     setDraft(next);
     return filled;
@@ -373,7 +376,7 @@ export function AddJobDialog({
                 )}
                 {step === "loading" && <StepLoading url={url} />}
                 {step === "review" && (
-                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} loginOnly={loginOnly} onFillFromText={fillFromText} />
+                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} note={note} httpStatus={httpStatus} onFillFromText={fillFromText} />
                 )}
               </motion.div>
             </AnimatePresence>

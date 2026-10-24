@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CompanyAvatar } from "../company-avatar";
 import {
   JOB_TYPES, LEVELS, MODES, PLATFORMS, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL,
-  type Confidence, type Draft, type MissingField,
+  type Confidence, type Draft, type ExtractResult, type MissingField,
 } from "@/lib/types";
 import { ConfidenceBanner } from "./confidence-banner";
 import { Segmented } from "./segmented";
@@ -50,7 +50,8 @@ export function StepReview({
   missing,
   editing,
   showUrl,
-  loginOnly,
+  note,
+  httpStatus,
   onFillFromText,
 }: {
   draft: Draft;
@@ -60,8 +61,9 @@ export function StepReview({
   editing: boolean;
   /** Field link tampil saat edit, atau saat isi manual tanpa link. */
   showUrl: boolean;
-  /** Server tidak boleh membaca isinya (Instagram, X): banner menjelaskan alasannya. */
-  loginOnly: boolean;
+  /** Alasan hasil gagal (login/diblokir) dan kode HTTP-nya, untuk pesan di banner. */
+  note?: ExtractResult["note"];
+  httpStatus?: number;
   /** Isi kolom kosong dari teks yang ditempel; mengembalikan label kolom yang terisi. */
   onFillFromText: (text: string) => string[];
 }) {
@@ -87,8 +89,8 @@ export function StepReview({
         </div>
       </div>
 
-      {confidence && !editing ? <ConfidenceBanner confidence={confidence} missing={missing} loginOnly={loginOnly} /> : <div style={{ height: 18 }} />}
-      {!editing && (confidence === "failed" || confidence === null) && <TextPaste onFill={onFillFromText} defaultOpen={loginOnly} />}
+      {confidence && !editing ? <ConfidenceBanner confidence={confidence} missing={missing} note={note} httpStatus={httpStatus} /> : <div style={{ height: 18 }} />}
+      {!editing && (confidence === "failed" || confidence === null) && <TextPaste onFill={onFillFromText} defaultOpen={!!note} />}
 
       <div className="form">
         <motion.div className="fld" {...fieldAnim(n++)}>
@@ -175,7 +177,7 @@ function TextPaste({ onFill, defaultOpen }: { onFill: (text: string) => string[]
     <details className="paste-box" open={defaultOpen || undefined}>
       <summary>Tempel teks lowongan</summary>
       <p className="set-hint" style={{ marginTop: 8 }}>
-        Salin caption atau pesan lowongannya, lalu tempel di sini. Lokerku mengisi kolom yang polanya jelas dan tidak menimpa yang sudah kamu isi.
+        Salin caption, pesan, atau seluruh teks halaman lowongannya (Ctrl+A lalu Ctrl+C), lalu tempel di sini. Lokerku mengisi kolom yang polanya jelas dan tidak menimpa yang sudah kamu isi.
       </p>
       <label className="sr-only" htmlFor="f-paste">
         Teks lowongan

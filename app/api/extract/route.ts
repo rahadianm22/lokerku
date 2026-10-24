@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   let result: ExtractResult;
   try {
     const { html, finalUrl, status } = await fetchHtml(url, ctrl.signal);
-    result = status >= 400 || !html ? failed(url) : parseJobHtml(html, finalUrl);
+    result = status >= 400 || !html ? failed(url, "blocked", status >= 400 ? status : undefined) : parseJobHtml(html, finalUrl);
     // Simpan link asli yang ditempel pengguna, bukan URL hasil redirect.
     result.data.url = url;
   } catch (e) {

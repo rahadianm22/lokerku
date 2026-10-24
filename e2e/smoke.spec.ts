@@ -206,3 +206,31 @@ test("Instagram: dijelaskan butuh login, teks postingan ditempel mengisi kolom t
   await expect(dialog).toBeHidden();
   await expect(page.getByText(/Menampilkan 1 dari 1 loker/)).toBeVisible();
 });
+
+test("situs memblokir server: banner menyebut kode dan alasannya, teks halaman bisa ditempel", async ({ page }) => {
+  await page.route("**/api/extract", (route) =>
+    route.fulfill({
+      json: {
+        confidence: "failed",
+        missing: ["company", "title", "city", "salary", "postedAt", "deadline"],
+        note: "blocked",
+        httpStatus: 403,
+        data: { url: "https://papan.example/remote-jobs/contoh", platform: "Situs perusahaan" },
+      },
+    }),
+  );
+  await page.goto("/app");
+  await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.locator("#lk-url").fill("https://papan.example/remote-jobs/contoh");
+  await dialog.getByRole("button", { name: "Ambil data" }).click();
+
+  await expect(dialog.getByText(/menolak permintaan dari server Lokerku \(kode 403\)/)).toBeVisible();
+  await expect(dialog.getByText("Postingan ini hanya terbuka setelah login")).toBeHidden(); // bukan soal login
+
+  await dialog.getByLabel("Teks lowongan").fill("Contoh Sehat is hiring a remote Senior Product Designer to join their team.\nApply before\nOct 31th, 2026\nJob type\nFull-Time");
+  await dialog.getByRole("button", { name: "Isi dari teks" }).click();
+  await expect(dialog.getByLabel("Perusahaan")).toHaveValue("Contoh Sehat");
+  await expect(dialog.getByLabel("Posisi")).toHaveValue("Senior Product Designer");
+  await expect(dialog.getByLabel("Deadline")).toHaveValue(/2026-10-31/);
+});

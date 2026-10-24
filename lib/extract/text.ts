@@ -1,6 +1,6 @@
-import type { Level, WorkMode } from "../types";
+import type { JobType, Level, WorkMode } from "../types";
 import { formatSalaryText } from "./salary-text";
-import { clean, detectLevel, detectMode } from "./util";
+import { clean, detectLevel, detectMode, mapEmploymentType } from "./util";
 
 export interface PostFields {
   title?: string;
@@ -10,6 +10,7 @@ export interface PostFields {
   deadline?: string;
   mode?: WorkMode;
   level?: Level;
+  type?: JobType;
   /** Teks asli, supaya sumbernya tetap tersimpan di Catatan. */
   notes?: string;
 }
@@ -46,6 +47,12 @@ function findTitle(text: string) {
     const t = tidyTitle(keyed[1]);
     if (t) return t;
   }
+  // Kalimat pembuka lowongan berbahasa Inggris: "Calm.com is hiring a remote Senior Product Designer to join their team"
+  const hiring = /is\s+hiring\s+(?:an?\s+)?(?:remote\s+)?(.{3,70}?)\s+(?:to\s+join|for\s+(?:our|the|their)|in\s+(?:our|the|their))\b/i.exec(text);
+  if (hiring) {
+    const t = tidyTitle(hiring[1]);
+    if (t) return t;
+  }
   // Baris pertama yang berteriak: "UI/UX DESIGNER, WE NEED YOU!" / "Frontend Engineer dibutuhkan"
   const first = text.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
   const shout = /^(.{3,60}?)[,!:]?\s*(?:we\s+need\s+you|we(?:'|’)?re\s+hiring|needed|wanted|dibutuhkan|dicari|dibuka)\b/i.exec(first);
@@ -65,15 +72,19 @@ function findCompany(text: string) {
 function findDeadline(text: string, now: number) {
   const m =
     /(?:deadline|batas(?:\s+akhir)?(?:\s+pendaftaran)?|paling\s+lambat|hingga|sampai|until|closing\s+date|apply\s+by|before)\s*:?\s*(?:tanggal\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})\.?\s*(\d{4})?/i.exec(text);
-  if (!m) return undefined;
-  const month = MONTHS[m[2].toLowerCase()];
-  const day = Number(m[1]);
+  const mf = m
+    ? null
+    : /(?:apply\s+before|deadline|closing\s+date|apply\s+by|valid\s+through|until)\s*:?\s*([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?/i.exec(text);
+  const hit = m ? { d: m[1], mo: m[2], y: m[3] } : mf ? { d: mf[2], mo: mf[1], y: mf[3] } : null;
+  if (!hit) return undefined;
+  const month = MONTHS[hit.mo.toLowerCase()];
+  const day = Number(hit.d);
   if (!month || day < 1 || day > 31) return undefined;
   const today = new Date(now + 7 * 3600_000);
-  let year = m[3] ? Number(m[3]) : today.getUTCFullYear();
+  let year = hit.y ? Number(hit.y) : today.getUTCFullYear();
   const candidate = Date.UTC(year, month - 1, day);
   // Tanpa tahun dan sudah lewat lebih dari sebulan: maksudnya tahun depan.
-  if (!m[3] && candidate < Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - 30 * 86_400_000) year += 1;
+  if (!hit.y && candidate < Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - 30 * 86_400_000) year += 1;
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
@@ -104,6 +115,10 @@ export function parsePostText(raw: string, now = Date.now()): PostFields {
   if (mode) out.mode = mode;
   const level = title ? detectLevel(title) : undefined;
   if (level) out.level = level;
+
+  const jt = /(?:job\s+type|employment\s+type|tipe\s+pekerjaan|jenis\s+pekerjaan)\s*:?\s*([A-Za-z][A-Za-z -]{2,20})/i.exec(text);
+  const type = jt ? mapEmploymentType(jt[1].trim()) : undefined;
+  if (type) out.type = type;
 
   const email = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/.exec(text);
   out.notes = (email ? `Kirim lamaran ke ${email[0]}\n\n` : "") + text;

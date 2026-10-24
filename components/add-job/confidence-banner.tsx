@@ -1,12 +1,12 @@
 import { AlertCircle, CircleCheck, TriangleAlert } from "lucide-react";
-import { FIELD_LABEL, type Confidence, type MissingField } from "@/lib/types";
+import { FIELD_LABEL, type Confidence, type ExtractResult, type MissingField } from "@/lib/types";
 
 function joinId(list: string[]) {
   if (list.length <= 1) return list[0] ?? "";
   return `${list.slice(0, -1).join(", ")} dan ${list[list.length - 1]}`;
 }
 
-export function ConfidenceBanner({ confidence, missing, loginOnly }: { confidence: Confidence; missing: MissingField[]; loginOnly?: boolean }) {
+export function ConfidenceBanner({ confidence, missing, note, httpStatus }: { confidence: Confidence; missing: MissingField[]; note?: ExtractResult["note"]; httpStatus?: number }) {
   if (confidence === "complete") {
     return (
       <div className="banner b-complete" role="status">
@@ -37,8 +37,12 @@ export function ConfidenceBanner({ confidence, missing, loginOnly }: { confidenc
       <AlertCircle className="ic" strokeWidth={1.75} aria-hidden />
       <div>
         <strong>Halaman tidak bisa dibaca</strong>
-        {loginOnly ? (
+        {note === "login-required" ? (
           <p>Postingan ini hanya terbuka setelah login, jadi Lokerku tidak bisa membacanya. Tempel teks postingannya di bawah, atau isi manual. Link tetap disimpan.</p>
+        ) : note === "blocked" ? (
+          <p>
+            Situs ini menolak permintaan dari server Lokerku{httpStatus ? ` (kode ${httpStatus})` : ""}. Itu sering terjadi pada situs yang dilindungi Cloudflare. Buka halamannya, pilih semua teks (Ctrl+A), salin (Ctrl+C), lalu tempel di bawah. Link tetap disimpan.
+          </p>
         ) : (
           <p>Mungkin perlu login atau situsnya membatasi akses. Isi data secara manual, link tetap disimpan.</p>
         )}

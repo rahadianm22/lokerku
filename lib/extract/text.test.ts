@@ -51,6 +51,32 @@ describe("parsePostText", () => {
     expect(parsePostText("Dicari: QA\nTanggal 31 Oktober ada acara", NOW).deadline).toBeUndefined();
   });
 
+  it("teks halaman lowongan berbahasa Inggris (Ctrl+A, Ctrl+C)", () => {
+    const page = [
+      "All jobs / Design / Product Design",
+      "Senior Product Designer",
+      "Posted 23 days ago",
+      "Contoh Sehat is hiring a remote Senior Product Designer to join their remote Design team.",
+      "About the job",
+      "Posted on",
+      "23 days ago",
+      "Apply before",
+      "Oct 31th, 2026",
+      "Job type",
+      "Full-Time",
+      "Category",
+      "Design",
+    ].join("\n");
+    expect(parsePostText(page, NOW)).toMatchObject({
+      title: "Senior Product Designer",
+      company: "Contoh Sehat",
+      deadline: "2026-10-31",
+      type: "Full-time",
+      mode: "Remote",
+      level: "Senior",
+    });
+  });
+
   it("tidak menebak yang tidak jelas", () => {
     const f = parsePostText("Halo semua, ada info seru nih. Cek bio ya!", NOW);
     expect(f.title).toBeUndefined();

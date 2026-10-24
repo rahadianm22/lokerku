@@ -32,12 +32,24 @@ function cityOf(jl: any): string {
 
 const logoOf = (org: any) => clean(org?.logo?.url ?? org?.logo?.contentUrl ?? org?.logo);
 
+/**
+ * Banyak situs menulis JSON-LD dengan baris baru mentah di dalam string (deskripsi HTML), yang tidak valid menurut JSON.
+ * Coba apa adanya dulu, lalu ulangi dengan karakter kontrol diganti spasi.
+ */
+export function parseLd(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return JSON.parse(text.replace(/[\u0000-\u001F]+/g, " "));
+  }
+}
+
 export function fromJsonLd($: CheerioAPI): ExtractResult["data"] | null {
   let jp: any = null;
   $('script[type="application/ld+json"]').each((_, el) => {
     if (jp) return;
     try {
-      jp = findJobPosting(JSON.parse($(el).contents().text()));
+      jp = findJobPosting(parseLd($(el).contents().text()));
     } catch {
       /* JSON-LD rusak: lewati */
     }
@@ -67,7 +79,7 @@ export function jsonLdDescription($: CheerioAPI): string {
   $('script[type="application/ld+json"]').each((_, el) => {
     if (out) return;
     try {
-      const jp = findJobPosting(JSON.parse($(el).contents().text()));
+      const jp = findJobPosting(parseLd($(el).contents().text()));
       if (jp?.description) out = clean(String(jp.description).replace(/<[^>]+>/g, " ")).slice(0, 4000);
     } catch {
       /* lewati */

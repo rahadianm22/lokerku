@@ -27,8 +27,8 @@ function fill(into: Data, from: Data) {
   }
 }
 
-export function failed(url: string, note?: ExtractResult["note"]): ExtractResult {
-  return { confidence: "failed", missing: [...KEY_FIELDS], ...(note ? { note } : {}), data: { url, platform: detectPlatform(url) ?? "Lainnya" } };
+export function failed(url: string, note?: ExtractResult["note"], httpStatus?: number): ExtractResult {
+  return { confidence: "failed", missing: [...KEY_FIELDS], ...(note ? { note } : {}), ...(httpStatus ? { httpStatus } : {}), data: { url, platform: detectPlatform(url) ?? "Lainnya" } };
 }
 
 /** Isi postingannya hanya tampil setelah login: server tidak mencoba membacanya dan tidak mencoba melewati login. */
@@ -42,7 +42,7 @@ const GENERIC = /^(instagram|x|twitter|facebook|linkedin|login|log in|sign in|si
 
 export function parseJobHtml(html: string, url: string): ExtractResult {
   const $ = cheerio.load(html);
-  if (looksBlocked(html, $)) return failed(url, "login-required");
+  if (looksBlocked(html, $)) return failed(url, "blocked");
 
   const platform = detectPlatform(url) ?? "Lainnya";
   const data: Data = { url, platform };

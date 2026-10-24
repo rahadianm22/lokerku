@@ -79,6 +79,22 @@ describe("parser terhadap fixture", () => {
     expect(r.confidence).toBe("partial");
   });
 
+  it("JSON-LD dengan baris baru mentah (tidak valid) tetap terbaca", () => {
+    const r = parseJobHtml(fixture("jsonld-raw-newline.html"), "https://papan.example/remote-jobs/contoh-sehat-senior-product-designer");
+    expect(r.data).toMatchObject({
+      title: "Senior Product Designer", // dari JSON-LD, bukan og:title "Remote Senior Product Designer"
+      company: "Contoh Sehat",
+      city: "United States of America",
+      type: "Full-time",
+      mode: "Remote",
+      postedAt: "2026-10-01",
+      deadline: "2026-10-31",
+    });
+    expect(r.data.salary).toBeUndefined(); // gaji 0–0 berarti tidak dicantumkan
+    expect(r.missing).toEqual(["salary"]);
+    expect(r.confidence).toBe("complete");
+  });
+
   it("cangkang Instagram (judul cuma 'Instagram') → failed, bukan judul posisi", () => {
     const r = parseJobHtml("<html><head><title>Instagram</title></head><body></body></html>", "https://www.instagram.com/p/abc/");
     expect(r.confidence).toBe("failed");

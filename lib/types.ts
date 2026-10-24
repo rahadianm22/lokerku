@@ -41,8 +41,13 @@ export type MissingField = "company" | "title" | "city" | "salary" | "postedAt" 
 export interface ExtractResult {
   confidence: Confidence;
   missing: MissingField[];
-  /** "login-required": platformnya tidak mengizinkan membaca isi postingan tanpa login (Instagram, X). */
-  note?: "login-required";
+  /**
+   * "login-required": isi postingan hanya tampil setelah login (Instagram, X).
+   * "blocked": situs menolak permintaan dari server Lokerku (kode 403/429, tantangan Cloudflare, dll.).
+   */
+  note?: "login-required" | "blocked";
+  /** Kode HTTP dari situs asal, kalau ada. Ditampilkan supaya penyebab kegagalan tidak misterius. */
+  httpStatus?: number;
   data: Partial<Omit<Job, "id" | "createdAt" | "updatedAt" | "status" | "priority" | "notes">>;
 }
 
