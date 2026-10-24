@@ -5,7 +5,7 @@ export type Level = "Junior" | "Mid" | "Senior" | "Lead" | "Manager";
 /** Urutan = urutan di pilihan Platform. Papan lowongan besar dulu, lalu situs perusahaan, lalu sisanya. */
 export const PLATFORMS = [
   "LinkedIn", "JobStreet", "Glints", "Kalibrr", "Indeed", "Dealls", "KitaLulus", "Karir.com", "TopKarir",
-  "Glassdoor", "Tech in Asia", "Wellfound", "Instagram", "X", "Situs perusahaan", "Lainnya",
+  "Glassdoor", "Tech in Asia", "Wellfound", "Instagram", "Threads", "X", "Situs perusahaan", "Lainnya",
 ] as const;
 export type Platform = (typeof PLATFORMS)[number];
 export type Priority = "low" | "med" | "high";

@@ -77,6 +77,25 @@ describe("parsePostText", () => {
     });
   });
 
+  it("postingan Threads: 'Hiring ✨ Posisi (Remote)', kata ganti bukan perusahaan", () => {
+    const post = [
+      "Hiring ✨ UI/UX Designer (Remote)",
+      "",
+      "🧠 A leading organization in open-source AI. They are hiring a UI/UX Designer to define the future of human-AI interaction. Fully remote.",
+      "",
+      "👤 UI/UX Designer (Remote)",
+      "",
+      "🚀 Apply: Link in bio",
+      "",
+      "Lead Id: 17706",
+    ].join("\n");
+    const f = parsePostText(post, NOW);
+    expect(f.title).toBe("UI/UX Designer");
+    expect(f.mode).toBe("Remote");
+    expect(f.company).toBeUndefined(); // "They" bukan perusahaan; organisasinya memang tidak disebut
+    expect(f.notes).toContain("Lead Id: 17706");
+  });
+
   it("tidak menebak yang tidak jelas", () => {
     const f = parsePostText("Halo semua, ada info seru nih. Cek bio ya!", NOW);
     expect(f.title).toBeUndefined();

@@ -106,6 +106,8 @@ describe("parser terhadap fixture", () => {
     expect(isLoginOnly("https://www.instagram.com/p/abc/")).toBe(true);
     expect(isLoginOnly("https://x.com/a/status/1")).toBe(true);
     expect(isLoginOnly("https://twitter.com/a/status/1")).toBe(true);
+    expect(isLoginOnly("https://www.threads.com/share/QL1y1OyPc/")).toBe(true);
+    expect(isLoginOnly("https://www.threads.net/@akun/post/abc")).toBe(true);
     expect(isLoginOnly("https://www.linkedin.com/jobs/view/1")).toBe(false);
     expect(isLoginOnly("https://careers.contoh.com/j/1")).toBe(false);
   });

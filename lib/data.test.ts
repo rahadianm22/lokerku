@@ -32,6 +32,8 @@ describe("platform", () => {
     ["https://www.instagram.com/p/abc/", "Instagram"],
     ["https://x.com/perusahaan/status/1", "X"],
     ["https://twitter.com/perusahaan/status/1", "X"],
+    ["https://www.threads.com/share/QL1y1OyPc/", "Threads"],
+    ["https://www.threads.net/@akun/post/abc", "Threads"],
     ["https://t.me/lokerchannel/12", "Lainnya"],
     ["https://forms.gle/abc", "Lainnya"],
     ["https://jobs.lever.co/acme/1", "Situs perusahaan"],

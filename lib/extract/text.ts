@@ -47,8 +47,14 @@ function findTitle(text: string) {
     const t = tidyTitle(keyed[1]);
     if (t) return t;
   }
+  // Baris yang diawali kata lowongan, tanpa titik dua: "Hiring ✨ UI/UX Designer (Remote)"
+  const headline = /^[ \t]*(?:we(?:'|’)?re[ \t]+)?(?:now[ \t]+)?(?:hiring|lowongan(?:[ \t]+kerja)?|dicari|dibutuhkan)\b[^\p{L}\d\n]*([^\n(|]{3,70})/imu.exec(text);
+  if (headline) {
+    const t = tidyTitle(headline[1]);
+    if (t) return t;
+  }
   // Kalimat pembuka lowongan berbahasa Inggris: "Calm.com is hiring a remote Senior Product Designer to join their team"
-  const hiring = /is\s+hiring\s+(?:an?\s+)?(?:remote\s+)?(.{3,70}?)\s+(?:to\s+join|for\s+(?:our|the|their)|in\s+(?:our|the|their))\b/i.exec(text);
+  const hiring = /(?:is|are)\s+hiring\s+(?:an?\s+)?(?:remote\s+)?(.{3,70}?)\s+(?:to\s+[a-z]+|for\s+(?:our|the|their)|in\s+(?:our|the|their))\b/i.exec(text);
   if (hiring) {
     const t = tidyTitle(hiring[1]);
     if (t) return t;
@@ -59,6 +65,8 @@ function findTitle(text: string) {
   return shout ? tidyTitle(shout[1]) : "";
 }
 
+const PRONOUN = /^(they|we|you|i|it|he|she|who|which|this|that|there|kami|kita|saya|anda|mereka|kamu)$/i;
+
 function findCompany(text: string) {
   const legal = new RegExp(String.raw`\b((?:PT|CV)\.?\s+${CAP})`, "u").exec(text);
   if (legal) return clean(legal[1]);
@@ -66,7 +74,10 @@ function findCompany(text: string) {
     String.raw`(${CAP})\s+(?:lagi\s+(?:cari|butuh|membuka|buka)|sedang\s+(?:mencari|membuka|butuh)|is\s+(?:hiring|looking)|are\s+(?:hiring|looking)|membuka\s+lowongan|membuka\s+kesempatan)`,
     "u",
   ).exec(text);
-  return verb ? clean(verb[1]) : "";
+  // Titik di akhir kalimat sebelumnya bisa ikut tertangkap ("…open-source AI. They are hiring"): ambil kalimat terakhir saja.
+  const name = verb ? (clean(verb[1]).split(/[.!?]\s+/).pop() ?? "") : "";
+  // "They are hiring…" / "Kami sedang mencari…": kata ganti bukan nama perusahaan.
+  return PRONOUN.test(name) ? "" : name;
 }
 
 function findDeadline(text: string, now: number) {

@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { detectPlatform } from "../platform";
+import { detectPlatform, LOGIN_ONLY } from "../platform";
 import type { ExtractResult, MissingField } from "../types";
 import { fromAts } from "./ats";
 import { guessCompany } from "./company";
@@ -34,11 +34,11 @@ export function failed(url: string, note?: ExtractResult["note"], httpStatus?: n
 /** Isi postingannya hanya tampil setelah login: server tidak mencoba membacanya dan tidak mencoba melewati login. */
 export function isLoginOnly(url: string) {
   const p = detectPlatform(url);
-  return p === "Instagram" || p === "X";
+  return p !== null && LOGIN_ONLY.has(p);
 }
 
 /** Judul cangkang/halaman pembatas yang bukan nama posisi atau perusahaan. */
-const GENERIC = /^(instagram|x|twitter|facebook|linkedin|login|log in|sign in|sign up|masuk|just a moment\.{0,3}|attention required.*|home|beranda|jobs?|careers?|karir|karier|lowongan(?: kerja)?)$/i;
+const GENERIC = /^(instagram|threads|x|twitter|facebook|linkedin|login|log in|sign in|sign up|masuk|just a moment\.{0,3}|attention required.*|home|beranda|jobs?|careers?|karir|karier|lowongan(?: kerja)?)$/i;
 
 export function parseJobHtml(html: string, url: string): ExtractResult {
   const $ = cheerio.load(html);

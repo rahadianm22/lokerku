@@ -18,14 +18,18 @@ const SITES: { platform: Platform; host: RegExp; label: string }[] = [
   { platform: "Tech in Asia", host: /(^|\.)techinasia\./, label: "techinasia.com" },
   { platform: "Wellfound", host: /(^|\.)(wellfound\.com|angel\.co)$/, label: "wellfound.com" },
   { platform: "Instagram", host: /(^|\.)instagram\.com$/, label: "instagram.com" },
+  { platform: "Threads", host: /(^|\.)threads\.(com|net)$/, label: "threads.com" },
   { platform: "X", host: /(^|\.)(x|twitter)\.com$/, label: "x.com" },
 ];
+
+/** Media sosial yang isi postingannya hanya tampil setelah login: server tidak mencoba membacanya. */
+export const LOGIN_ONLY: ReadonlySet<Platform> = new Set<Platform>(["Instagram", "Threads", "X"]);
 
 /** Tempat loker sering diposting tapi tidak punya label sendiri. */
 const OTHER = /(^|\.)(facebook\.com|t\.me|telegram\.me|forms\.gle)$|^docs\.google\.com$/;
 
 /** Domain yang ditampilkan sebagai contoh di langkah 1. */
-export const SUPPORTED_DOMAINS = SITES.filter((s) => !["Instagram", "X"].includes(s.platform)).map((s) => s.label);
+export const SUPPORTED_DOMAINS = SITES.filter((s) => !LOGIN_ONLY.has(s.platform)).map((s) => s.label);
 
 export function detectPlatform(url: string): Platform | null {
   let host: string;
