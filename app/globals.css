@@ -97,7 +97,8 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-html { background: var(--bg); }
+/* Ruang scrollbar disediakan sejak awal: tanpa ini, konten rata tengah bergeser saat halaman memanjang (CLS). */
+html { background: var(--bg); scrollbar-gutter: stable; }
 body {
   margin: 0;
   min-height: 100dvh;
@@ -557,6 +558,8 @@ input[type="date"].inp { font-family: var(--font-mono); font-size: 13px; }
 .prose-lk ul { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .prose-lk strong { color: var(--ink); font-weight: 600; }
 .prose-lk a { color: var(--ink); text-underline-offset: 3px; overflow-wrap: anywhere; }
+/* Link di dalam teks harus terlihat sebagai link tanpa mengandalkan warna (WCAG 1.4.1). */
+.prose-lk a, .ft a, .ld-foot a, .sync a { text-decoration: underline; text-underline-offset: 3px; }
 
 @media (max-width: 1100px) {
   .ld-hero { gap: 40px; }

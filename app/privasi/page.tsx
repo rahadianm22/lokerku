@@ -20,6 +20,8 @@ export default function Privasi() {
         </div>
       </nav>
 
+      <main>
+
       <article className="prose-lk">
         <p className="eyebrow">Terakhir diperbarui 23 Oktober 2026</p>
         <h1>Kebijakan privasi</h1>
@@ -102,6 +104,8 @@ export default function Privasi() {
           {CONTACT ? <a href={`mailto:${CONTACT}`}>{CONTACT}</a> : <span className="mono">[EMAIL KONTAK, isi lewat CONTACT_EMAIL]</span>}.
         </p>
       </article>
+
+      </main>
 
       <footer className="ld-foot">
         <span>

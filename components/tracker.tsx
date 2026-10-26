@@ -285,7 +285,7 @@ export function Tracker() {
         onSettings={openSettings}
       />
 
-      {account ? <SyncNotice /> : authEnabled && ready && <GuestNotice />}
+      {account && <SyncNotice />}
 
       <StatsRow jobs={jobs} now={now} />
 
@@ -320,6 +320,13 @@ export function Tracker() {
         </span>
         <SyncStatus state={store.sync} now={now} sheetUrl={store.sheetUrl} />
       </footer>
+
+      {/* Di bawah tabel, bukan di atas: muncul setelah halaman siap, jadi di atas akan menggeser seluruh tabel (CLS). */}
+      {!account && authEnabled && ready && (
+        <div style={{ marginTop: 16 }}>
+          <GuestNotice />
+        </div>
+      )}
 
       <AnimatePresence>
         {dialog && (

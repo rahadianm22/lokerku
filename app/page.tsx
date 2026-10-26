@@ -40,6 +40,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         </div>
       </nav>
 
+      <main>
+
       {errorText && (
         <div className="notice danger" role="alert">
           <div>
@@ -194,6 +196,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           </div>
         </dl>
       </section>
+
+      </main>
 
       <footer className="ld-foot">
         <span>
