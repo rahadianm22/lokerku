@@ -259,3 +259,49 @@ test("ganti status lewat dropdown di baris/kartu, dan dropdown kartu mobile terl
   await expect(page.getByText("Status diubah ke Interview")).toBeVisible();
   await expect(select).toHaveValue("interview");
 });
+
+// OCR memakai model bahasa yang diunduh sekali dari internet, jadi hanya jalan dengan E2E_OCR=1.
+test("tempel gambar lowongan (Ctrl+V): teks dibaca di browser dan form terisi", async ({ page }) => {
+  test.skip(!process.env.E2E_OCR, "set E2E_OCR=1 untuk menjalankan tes OCR (butuh internet)");
+  test.setTimeout(120_000);
+  await page.goto("/app");
+  await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.locator("#lk-url").focus();
+
+  // Gambar kartu lowongan digambar di canvas, lalu "ditempel" sebagai berkas gambar di clipboard.
+  await page.evaluate(async () => {
+    const c = document.createElement("canvas");
+    c.width = 760;
+    c.height = 330;
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = "#111";
+    g.font = "bold 34px Arial";
+    g.fillText("Data Analyst", 30, 60);
+    g.font = "28px Arial";
+    g.fillText("Maju Bersama Limited", 30, 110);
+    g.fillText("Bandung, Jawa Barat", 30, 170);
+    g.fillText("Rp 8,000,000 - Rp 10,000,000 per month", 30, 220);
+    g.font = "22px Arial";
+    g.fillText("3 days ago", 30, 285);
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), "image/png"));
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], "image.png", { type: "image/png" }));
+    document.getElementById("lk-url")!.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+
+  await expect(dialog.getByRole("heading", { name: "Cek & rapikan data" })).toBeVisible();
+  await expect(dialog.locator(".shot-name")).toContainText("image.png");
+  await expect(dialog.getByText(/^Terisi:/)).toBeVisible({ timeout: 90_000 });
+  await expect(dialog.locator("#f-title")).toHaveValue("Data Analyst");
+  await expect(dialog.locator("#f-company")).toHaveValue("Maju Bersama Limited");
+  await expect(dialog.locator("#f-city")).toHaveValue("Bandung");
+  await expect(dialog.locator("#f-salary")).toHaveValue("Rp 8–10 jt");
+
+  // Hapus gambar: chip hilang, isian tetap.
+  await dialog.getByRole("button", { name: "Hapus gambar" }).click();
+  await expect(dialog.locator(".shot")).toHaveCount(0);
+  await expect(dialog.locator("#f-title")).toHaveValue("Data Analyst");
+});

@@ -8,6 +8,7 @@ export interface PostFields {
   city?: string;
   salary?: string;
   deadline?: string;
+  postedAt?: string;
   mode?: WorkMode;
   level?: Level;
   type?: JobType;
@@ -65,6 +66,60 @@ function findTitle(text: string) {
   return shout ? tidyTitle(shout[1]) : "";
 }
 
+/**
+ * Kartu lowongan (JobStreet, Glints, LinkedIn, dll.): baris 1 posisi, baris 2 perusahaan, lalu lokasi dan gaji.
+ * Hanya dipakai kalau ada tanda khas lowongan, supaya teks biasa tidak salah dibaca sebagai kartu.
+ */
+const CARD_SIGNAL = /per\s+(?:month|bulan|year|tahun)|yang\s+lalu|\bago\b|full[- ]?time|part[- ]?time|kontrak|remote|hybrid|on-?site|(?:Rp\.?|IDR|USD|\$)\s?\d/i;
+// Sisa logo yang ikut terbaca OCR di ujung baris, mis. "Learning Time Limited C0)".
+const OCR_TAIL = /\s+\S{0,3}[)\]|}«»+•°©®@#*~<>\\]\S{0,2}$/u;
+const PLACE_LINE = /^\p{Lu}[\p{L}.' ]{1,30}(?:,\s*\p{Lu}[\p{L}.' ]{1,30}){1,3}$/u;
+
+function cardLines(text: string) {
+  return text
+    .split("\n")
+    .map((l) => l.trim().replace(OCR_TAIL, "").trim())
+    .filter(Boolean);
+}
+
+const LEGAL_SUFFIX = /^(.*?\b(?:Limited|Ltd\.?|Inc\.?|LLC|LLP|Corp\.?|Corporation|Pte\.?|Pvt\.?|GmbH|Tbk\.?|Co\.))(?:\s+(?:Ltd\.?|Pte\.?))?\b/i;
+
+/** Logo di samping nama perusahaan sering ikut terbaca OCR sebagai huruf nyasar ("Learning Time Limited OR"). */
+function trimCompanyTail(name: string) {
+  const legal = LEGAL_SUFFIX.exec(name);
+  const cut = legal ? clean(legal[1]) : name;
+  const words = cut.split(/\s+/);
+  // Nama dengan ≥3 kata yang berakhir 1–2 huruf kapital/angka sendirian: hampir pasti sisa logo.
+  if (words.length >= 3 && /^[A-Z0-9]{1,2}$/.test(words[words.length - 1])) return words.slice(0, -1).join(" ");
+  return cut;
+}
+
+function looksLikeHeading(l: string) {
+  return l.length >= 3 && l.length <= 70 && !/[.!?:]$/.test(l) && !/^[•\-–*+·]/.test(l) && !/(?:Rp\.?|IDR)\s?\d/i.test(l);
+}
+
+function findCard(text: string): { title?: string; company?: string; city?: string } {
+  if (!CARD_SIGNAL.test(text)) return {};
+  const lines = cardLines(text);
+  if (lines.length < 3 || !looksLikeHeading(lines[0]) || !looksLikeHeading(lines[1])) return {};
+  const title = tidyTitle(lines[0]);
+  const company = trimCompanyTail(tidyTitle(lines[1]));
+  if (!title || !company || lines[0].includes(".")) return {};
+  const place = lines.slice(2, 6).find((l) => PLACE_LINE.test(l));
+  return { title, company, city: place ? clean(place.split(",")[0]) : undefined };
+}
+
+/** "27 hari yang lalu" / "3 weeks ago" → tanggal posting (WIB). */
+function findPostedAt(text: string, now: number) {
+  const m = /(\d+)\s*(menit|jam|hari|minggu|bulan|minutes?|hours?|days?|weeks?|months?)\s+(?:yang\s+lalu|ago)/i.exec(text);
+  if (!m) return undefined;
+  const n = Number(m[1]);
+  const unit = m[2].toLowerCase();
+  const day = 86_400_000;
+  const ms = /^(menit|minute)/.test(unit) ? n * 60_000 : /^(jam|hour)/.test(unit) ? n * 3_600_000 : /^(hari|day)/.test(unit) ? n * day : /^(minggu|week)/.test(unit) ? n * 7 * day : n * 30 * day;
+  return new Date(now + 7 * 3_600_000 - ms).toISOString().slice(0, 10);
+}
+
 const PRONOUN = /^(they|we|you|i|it|he|she|who|which|this|that|there|kami|kita|saya|anda|mereka|kamu)$/i;
 
 function findCompany(text: string) {
@@ -108,13 +163,18 @@ export function parsePostText(raw: string, now = Date.now()): PostFields {
   if (!text) return {};
   const out: PostFields = {};
 
-  const title = findTitle(text);
+  const card = findCard(text);
+  const title = findTitle(text) || card.title || "";
   if (title) out.title = title;
-  const company = findCompany(text);
+  const company = findCompany(text) || card.company || "";
   if (company) out.company = company;
 
   const city = /(?:lokasi|location|penempatan|work\s+location|based\s+in)\s*[:\-–]\s*([^\n,|]{2,40})/i.exec(text);
   if (city) out.city = clean(city[1]);
+  else if (card.city) out.city = card.city;
+
+  const postedAt = findPostedAt(text, now);
+  if (postedAt) out.postedAt = postedAt;
 
   const salary = /(?:Rp\.?|IDR)\s?\d[\d.,]*(?:\s?(?:jt|juta|rb|ribu|k))?(?:\s*[-–]\s*(?:Rp\.?|IDR)?\s?\d[\d.,]*(?:\s?(?:jt|juta|rb|ribu|k))?)?/i.exec(text);
   if (salary) out.salary = formatSalaryText(salary[0]);

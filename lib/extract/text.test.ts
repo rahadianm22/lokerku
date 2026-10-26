@@ -96,6 +96,58 @@ describe("parsePostText", () => {
     expect(f.notes).toContain("Lead Id: 17706");
   });
 
+  it("kartu lowongan hasil OCR: posisi, perusahaan, lokasi, gaji, tanggal posting; sisa logo dibuang", () => {
+    // Struktur dan noise sama dengan hasil pembacaan gambar kartu JobStreet; nama perusahaan diganti.
+    const ocr = [
+      "Industrial Designer",
+      "",
+      "Studio Belajar Limited C0)",
+      "Baru untuk kamu",
+      "",
+      "Jakarta Selatan, Jakarta Raya",
+      "",
+      "Rp 7,000,000 - Rp 9,000,000 per month",
+      "",
+      "+ Good career path",
+      "+ Collaborative work environment",
+      "",
+      "Our Studio Belajar family is looking for a creative and",
+      "enthusiastic individual to join our growing team.",
+      "",
+      "27 hari yang lalu « Segera ditutup vn",
+    ].join("\n");
+    const f = parsePostText(ocr, NOW);
+    expect(f).toMatchObject({
+      title: "Industrial Designer",
+      company: "Studio Belajar Limited",
+      city: "Jakarta Selatan",
+      salary: "Rp 7–9 jt",
+      postedAt: "2026-09-27",
+    });
+  });
+
+  it("sisa logo di ujung nama perusahaan dibuang, nama asli tidak rusak", () => {
+    const card = (company: string) => `Data Analyst\n${company}\nBandung, Jawa Barat\nRp 8,000,000 per month\n3 days ago`;
+    expect(parsePostText(card("Studio Belajar Limited OR"), NOW).company).toBe("Studio Belajar Limited");
+    expect(parsePostText(card("Maju Jaya Ltd XY"), NOW).company).toBe("Maju Jaya Ltd");
+    expect(parsePostText(card("Toko Kopi Senja Q"), NOW).company).toBe("Toko Kopi Senja");
+    // nama pendek dan nama yang memang berakhiran huruf kapital pendek tidak dipotong
+    expect(parsePostText(card("Studio X"), NOW).company).toBe("Studio X");
+    expect(parsePostText(card("Bank Jago"), NOW).company).toBe("Bank Jago");
+  });
+
+  it("dua baris pendek tanpa tanda lowongan tidak dianggap kartu", () => {
+    const f = parsePostText("Selamat Pagi\nTim Kreatif\nSampai jumpa", NOW);
+    expect(f.title).toBeUndefined();
+    expect(f.company).toBeUndefined();
+  });
+
+  it("tanggal relatif Indonesia dan Inggris", () => {
+    expect(parsePostText("Dicari: QA\nDiposting 3 minggu yang lalu", NOW).postedAt).toBe("2026-10-03");
+    expect(parsePostText("Dicari: QA\nPosted 2 days ago", NOW).postedAt).toBe("2026-10-22");
+    expect(parsePostText("Dicari: QA\n5 jam yang lalu", NOW).postedAt).toBe("2026-10-24");
+  });
+
   it("tidak menebak yang tidak jelas", () => {
     const f = parsePostText("Halo semua, ada info seru nih. Cek bio ya!", NOW);
     expect(f.title).toBeUndefined();

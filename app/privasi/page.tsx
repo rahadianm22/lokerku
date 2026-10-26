@@ -68,6 +68,14 @@ export default function Privasi() {
           kali, lalu dibuang.
         </p>
 
+        <h2>Gambar yang kamu tempel</h2>
+        <p>
+          Kalau kamu menempel tangkapan layar lowongan, teksnya dibaca di browsermu sendiri. Gambarnya tidak dikirim ke
+          server Lokerku dan tidak disimpan. Yang diunduh dari internet hanya program pembaca gambar dan model bahasanya
+          (beberapa megabita, sekali, lalu disimpan browser), dari jsDelivr. Teks hasil bacaan baru tersimpan kalau kamu
+          menyimpan loker, di kolom Catatan.
+        </p>
+
         <h2>Yang tidak dilakukan Lokerku</h2>
         <ul>
           <li>Tidak memasang analitik, iklan, atau pelacak pihak ketiga.</li>

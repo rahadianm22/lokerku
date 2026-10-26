@@ -9,6 +9,8 @@ import type { Settings } from "@/lib/settings";
 import type { Confidence, Draft, ExtractResult, Job, MissingField } from "@/lib/types";
 import { normalizeUrl, toHttpUrl } from "@/lib/url";
 import { parsePostText } from "@/lib/extract/text";
+import { imageSize, MAX_IMAGE_BYTES, readImageText } from "@/lib/ocr";
+import type { Shot } from "./image-chip";
 import { StepLink } from "./step-link";
 import { StepLoading } from "./step-loading";
 import { StepReview } from "./step-review";
@@ -84,6 +86,24 @@ export function AddJobDialog({
   const [showUrl, setShowUrl] = useState(!!editing);
   const abort = useRef<AbortController | null>(null);
   const panel = useRef<HTMLDivElement>(null);
+
+  // Tempel teks/gambar lowongan (kotak "Tempel teks atau gambar lowongan" di langkah review).
+  const [pasteText, setPasteText] = useState("");
+  const [pasteMsg, setPasteMsg] = useState("");
+  const [shot, setShot] = useState<Shot | null>(null);
+  const ocrAbort = useRef<AbortController | null>(null);
+  const shotUrl = useRef<string | null>(null);
+  const draftRef = useRef(draft);
+  useEffect(() => {
+    draftRef.current = draft;
+  });
+  useEffect(
+    () => () => {
+      ocrAbort.current?.abort();
+      if (shotUrl.current) URL.revokeObjectURL(shotUrl.current);
+    },
+    [],
+  );
 
   const byUrl = useMemo(() => {
     const m = new Map<string, Job>();
@@ -180,6 +200,8 @@ export function AddJobDialog({
 
   /** Isi hanya kolom yang masih kosong (atau masih bawaan), supaya isian pengguna tidak tertimpa. */
   function fillFromText(text: string): string[] {
+    // draftRef, bukan state di closure: dipanggil dari proses async (OCR) yang bisa berjalan setelah beberapa render.
+    const draft = draftRef.current;
     const f = parsePostText(text);
     const next: Draft = { ...draft };
     const filled: string[] = [];
@@ -193,6 +215,7 @@ export function AddJobDialog({
     take("city", "Lokasi", f.city, !draft.city.trim());
     take("salary", "Gaji", f.salary, !draft.salary.trim());
     take("deadline", "Deadline", f.deadline ?? undefined, !draft.deadline);
+    take("postedAt", "Tanggal posting", f.postedAt, !draft.postedAt);
     take("mode", "Mode kerja", f.mode, draft.mode === "Belum tahu");
     take("level", "Level", f.level, draft.level === "Mid");
     take("type", "Tipe", f.type && f.type !== draft.type ? f.type : undefined, draft.type === "Full-time");
@@ -200,6 +223,69 @@ export function AddJobDialog({
     setDraft(next);
     return filled;
   }
+
+  function describeFilled(filled: string[]) {
+    const fields = filled.filter((l) => l !== "Catatan");
+    if (fields.length) return `Terisi: ${filled.join(", ")}. Cek lagi sebelum menyimpan.`;
+    if (filled.length) return "Teks disimpan di Catatan. Kolom lain tidak ketemu polanya, isi manual ya.";
+    return "Tidak ada kolom kosong yang bisa diisi dari teks ini.";
+  }
+
+  function fillFromBox() {
+    setPasteMsg(describeFilled(fillFromText(pasteText)));
+  }
+
+  function removeShot() {
+    ocrAbort.current?.abort();
+    if (shotUrl.current) URL.revokeObjectURL(shotUrl.current);
+    shotUrl.current = null;
+    setShot(null);
+    setPasteMsg("");
+  }
+
+  /** Baca teks dari gambar yang ditempel/dipilih (di browser), lalu isi kolom yang masih kosong. */
+  async function readShot(file: File) {
+    if (editing || step === "loading" || !file.type.startsWith("image/")) return;
+    if (file.size > MAX_IMAGE_BYTES) {
+      setPasteMsg("Gambar terlalu besar (maksimal 10 MB).");
+      return;
+    }
+    ocrAbort.current?.abort();
+    const ctrl = new AbortController();
+    ocrAbort.current = ctrl;
+    if (shotUrl.current) URL.revokeObjectURL(shotUrl.current);
+    const objUrl = URL.createObjectURL(file);
+    shotUrl.current = objUrl;
+    const size = await imageSize(file).catch(() => ({ width: 0, height: 0 }));
+    if (ctrl.signal.aborted) return;
+    setShot({ url: objUrl, name: file.name || "image.png", width: size.width, height: size.height, status: "reading", pct: 0, label: "Menyiapkan" });
+    setPasteMsg("");
+    if (step === "link") manual(); // sama seperti "Isi manual saja": lanjut ke form, lalu diisi dari gambar
+    try {
+      const text = (
+        await readImageText(file, (p) => setShot((s) => (s && s.url === objUrl ? { ...s, pct: p.pct, label: p.label } : s)), ctrl.signal)
+      ).trim();
+      if (ctrl.signal.aborted) return;
+      setShot((s) => (s && s.url === objUrl ? { ...s, status: "done" } : s));
+      if (!text) {
+        setPasteMsg("Tidak ada teks yang terbaca di gambar ini. Coba tangkapan layar yang lebih besar atau lebih jelas.");
+        return;
+      }
+      setPasteText(text.slice(0, 5000));
+      setPasteMsg(describeFilled(fillFromText(text)));
+    } catch (e) {
+      if (ctrl.signal.aborted || (e instanceof DOMException && e.name === "AbortError")) return;
+      setShot((s) => (s && s.url === objUrl ? { ...s, status: "error" } : s));
+      setPasteMsg("Gambar belum bisa dibaca. Pembaca gambar diunduh sekali dari internet, jadi pastikan kamu online lalu coba lagi.");
+    }
+  }
+
+  const onPaste = (e: React.ClipboardEvent) => {
+    const f = [...e.clipboardData.files].find((x) => x.type.startsWith("image/"));
+    if (!f) return;
+    e.preventDefault();
+    void readShot(f);
+  };
 
   function manual() {
     const target = toHttpUrl(url);
@@ -317,6 +403,7 @@ export function AddJobDialog({
           tabIndex={-1}
           style={{ outline: "none" }}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
           {...enter}
           drag={mobile && !reduce ? "y" : false}
           dragControls={drag}
@@ -372,11 +459,12 @@ export function AddJobDialog({
                     error={error}
                     duplicate={duplicate}
                     onShowDuplicate={onShowExisting}
+                    onImage={(f) => void readShot(f)}
                   />
                 )}
                 {step === "loading" && <StepLoading url={url} />}
                 {step === "review" && (
-                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} note={note} httpStatus={httpStatus} onFillFromText={fillFromText} />
+                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} note={note} httpStatus={httpStatus} paste={{ text: pasteText, setText: setPasteText, msg: pasteMsg, onFill: fillFromBox, shot, onRemoveShot: removeShot, onPickFile: (f) => void readShot(f) }} />
                 )}
               </motion.div>
             </AnimatePresence>

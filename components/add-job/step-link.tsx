@@ -15,6 +15,7 @@ export function StepLink({
   error,
   duplicate,
   onShowDuplicate,
+  onImage,
 }: {
   url: string;
   onUrl: (v: string) => void;
@@ -24,8 +25,11 @@ export function StepLink({
   error: string;
   duplicate: Job | null;
   onShowDuplicate: (j: Job) => void;
+  /** Gambar yang dipilih lewat tombol (tempel dengan Ctrl+V ditangani di dialog). */
+  onImage: (file: File) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
   const platform = toHttpUrl(url) ? detectPlatform(url) : null;
 
   useEffect(() => {
@@ -132,6 +136,26 @@ export function StepLink({
         ))}
         <span className="tag">karier.perusahaan.com</span>
       </div>
+      <p className="help" id="lk-image-help">
+        Punya tangkapan layar lowongan? Tempel gambarnya di sini (Ctrl+V) atau{" "}
+        <button type="button" className="linkbtn" style={{ padding: 0 }} onClick={() => picker.current?.click()}>
+          pilih gambar
+        </button>
+        . Teksnya dibaca di browsermu, gambarnya tidak diunggah.
+      </p>
+      <input
+        ref={picker}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onImage(f);
+          e.target.value = "";
+        }}
+      />
     </form>
   );
 }
