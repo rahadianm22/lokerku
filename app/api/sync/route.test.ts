@@ -24,8 +24,10 @@ vi.mock("@/lib/google", () => ({
   ensureSheet: (...a: unknown[]) => ensureSheet(...a),
   readRows: (...a: unknown[]) => readRows(...a),
   writeRows: (...a: unknown[]) => writeRows(...a),
+  readKnownSheet: (...a: unknown[]) => readKnownSheet(...a),
   GoogleError,
 }));
+const readKnownSheet = vi.fn();
 
 const { POST } = await import("./route");
 
@@ -138,6 +140,30 @@ describe("POST /api/sync", () => {
     const res = await POST(req({ jobs: [] }));
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "scope" });
+  });
+
+  it("ID spreadsheet diketahui: jalur cepat, tanpa memeriksa Drive", async () => {
+    readKnownSheet.mockResolvedValue({ sheet: sheetRef, rows: [[...HEADER], ...SEED.map(jobToRow)] });
+    const res = await POST(req({ spreadsheetId: "sheet123456", jobs: SEED }));
+    expect(res.status).toBe(200);
+    expect(readKnownSheet).toHaveBeenCalledWith("tok", "sheet123456");
+    expect(ensureSheet).not.toHaveBeenCalled();
+    expect(readRows).not.toHaveBeenCalled();
+  });
+
+  it("jalur cepat gagal (file/tab hilang) → pemeriksaan lengkap", async () => {
+    readKnownSheet.mockResolvedValue(null);
+    const res = await POST(req({ spreadsheetId: "sheet123456", jobs: [] }));
+    expect(res.status).toBe(200);
+    expect(ensureSheet).toHaveBeenCalledWith("tok", "sheet123456");
+    expect(readRows).toHaveBeenCalled();
+  });
+
+  it("verify: true selalu memeriksa lengkap walau ID diketahui", async () => {
+    const res = await POST(req({ spreadsheetId: "sheet123456", verify: true, jobs: [] }));
+    expect(res.status).toBe(200);
+    expect(readKnownSheet).not.toHaveBeenCalled();
+    expect(ensureSheet).toHaveBeenCalled();
   });
 
   it("rate limit per pengguna: permintaan ke-41 dalam semenit → 429", async () => {

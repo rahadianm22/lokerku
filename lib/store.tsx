@@ -174,10 +174,13 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
     setSync((s) => ({ kind: "syncing", lastSyncAt: "lastSyncAt" in s ? s.lastSyncAt : undefined }));
     try {
       const all = await db.jobs.toArray();
+      // Pemeriksaan lengkap file di Drive cukup sekali sehari; sinkron lainnya cukup satu permintaan baca.
+      const verifiedAt = (await getMeta<number>(db, "verifiedAt")) ?? 0;
+      const verify = Date.now() - verifiedAt > 86_400_000;
       const res = await fetch("/api/sync", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ spreadsheetId: (await getMeta<string>(db, "sheetId")) ?? null, jobs: all }),
+        body: JSON.stringify({ spreadsheetId: (await getMeta<string>(db, "sheetId")) ?? null, verify, jobs: all }),
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: "google" }));
@@ -197,6 +200,7 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
         await setMeta(db, "sheetId", data.spreadsheetId);
         await setMeta(db, "sheetUrl", data.spreadsheetUrl);
         await setMeta(db, "lastSyncAt", data.syncedAt);
+        if (verify) await setMeta(db, "verifiedAt", data.syncedAt);
       });
       lastAt.current = Date.now();
       setSheetUrl(data.spreadsheetUrl);

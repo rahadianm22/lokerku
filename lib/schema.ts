@@ -37,5 +37,7 @@ export const backupSchema = z.object({
 
 export const syncRequestSchema = z.object({
   spreadsheetId: z.string().regex(/^[\w-]{10,128}$/).nullable().optional(),
+  /** Minta pemeriksaan lengkap file di Drive (terhapus? tab diganti nama?). Klien mengirimnya sekali sehari. */
+  verify: z.boolean().optional(),
   jobs: z.array(jobSchema).max(MAX_JOBS),
 });

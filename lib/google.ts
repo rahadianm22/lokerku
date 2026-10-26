@@ -98,6 +98,20 @@ export async function ensureSheet(token: string, hintId?: string | null): Promis
   return create(token);
 }
 
+/**
+ * Jalur cepat: satu permintaan baca ke spreadsheet yang ID-nya sudah diketahui, tanpa memeriksa file di Drive
+ * dan metadata tab. Mengembalikan null kalau file/tab tidak ditemukan, supaya pemanggil jatuh ke ensureSheet.
+ */
+export async function readKnownSheet(token: string, id: string): Promise<{ sheet: SheetRef; rows: string[][] } | null> {
+  const sheet: SheetRef = { id, url: `https://docs.google.com/spreadsheets/d/${id}/edit`, tab: SHEET_TITLE };
+  try {
+    return { sheet, rows: await readRows(token, sheet) };
+  } catch (e) {
+    if (e instanceof GoogleError && (e.status === 400 || e.status === 404)) return null;
+    throw e;
+  }
+}
+
 const range = (tab: string, a1: string) => encodeURIComponent(`'${tab.replace(/'/g, "''")}'!${a1}`);
 
 export async function readRows(token: string, sheet: SheetRef): Promise<string[][]> {

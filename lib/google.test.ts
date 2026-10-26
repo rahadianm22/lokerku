@@ -127,3 +127,25 @@ describe("baca dan tulis baris", () => {
     expect((init.headers as Record<string, string>).authorization).toBe("Bearer rahasia");
   });
 });
+
+describe("readKnownSheet (jalur cepat)", () => {
+  it("satu permintaan baca ke tab Loker", async () => {
+    const { readKnownSheet } = await import("./google");
+    responses = [{ json: { values: [["ID"]] } }];
+    const r = await readKnownSheet("tok", "abc12345678");
+    expect(r?.rows).toEqual([["ID"]]);
+    expect(r?.sheet.url).toBe("https://docs.google.com/spreadsheets/d/abc12345678/edit");
+    expect(calls).toHaveLength(1);
+    expect(decoded(calls[0])).toContain("'Loker'!A1:S");
+  });
+
+  it("404 / 400 (file atau tab hilang) → null, error lain dilempar", async () => {
+    const { readKnownSheet } = await import("./google");
+    responses = [{ status: 404 }];
+    expect(await readKnownSheet("tok", "abc12345678")).toBeNull();
+    responses = [{ status: 400 }];
+    expect(await readKnownSheet("tok", "abc12345678")).toBeNull();
+    responses = [{ status: 403, json: {} }];
+    await expect(readKnownSheet("tok", "abc12345678")).rejects.toMatchObject({ status: 403 });
+  });
+});

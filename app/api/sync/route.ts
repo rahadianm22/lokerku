@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { authEnabled, refreshGoogleToken } from "@/lib/auth";
-import { ensureSheet, GoogleError, readRows, writeRows } from "@/lib/google";
+import { ensureSheet, GoogleError, readKnownSheet, readRows, writeRows } from "@/lib/google";
 import { differs, mergeJobs } from "@/lib/merge";
 import { rateLimit } from "@/lib/rate-limit";
 import { syncRequestSchema } from "@/lib/schema";
@@ -38,8 +38,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const now = Date.now();
-    const sheet = await ensureSheet(who.access, parsed.data.spreadsheetId);
-    const rows = await readRows(who.access, sheet);
+    const { spreadsheetId, verify } = parsed.data;
+    // Biasanya 1 permintaan baca. Pemeriksaan lengkap (3 permintaan) hanya saat diminta atau jalur cepat gagal.
+    const fast = spreadsheetId && !verify ? await readKnownSheet(who.access, spreadsheetId) : null;
+    const sheet = fast ? fast.sheet : await ensureSheet(who.access, spreadsheetId);
+    const rows = fast ? fast.rows : await readRows(who.access, sheet);
     const fromSheet = rowsToJobs(rows, now, randomUUID);
     const merged = mergeJobs(fromSheet, parsed.data.jobs, now).sort((a, b) => b.createdAt - a.createdAt);
 
