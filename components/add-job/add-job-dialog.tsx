@@ -10,6 +10,7 @@ import type { Confidence, Draft, ExtractResult, Job, MissingField } from "@/lib/
 import { normalizeUrl, toHttpUrl } from "@/lib/url";
 import { parsePostText } from "@/lib/extract/text";
 import { timeline } from "@/lib/history";
+import type { SharedJob } from "@/lib/share";
 import { imageSize, MAX_IMAGE_BYTES, readImageText } from "@/lib/ocr";
 import type { Shot } from "./image-chip";
 import { StepLink } from "./step-link";
@@ -18,7 +19,8 @@ import { StepReview } from "./step-review";
 
 type Step = "link" | "loading" | "review";
 
-export type DialogMode = { kind: "add" } | { kind: "edit"; job: Job };
+/** `shared`: dibuka dari menu "Bagikan" aplikasi lain (PWA share target). */
+export type DialogMode = { kind: "add"; shared?: SharedJob } | { kind: "edit"; job: Job };
 
 const blank = (url: string, s: Settings): Draft => ({
   url,
@@ -362,6 +364,27 @@ export function AddJobDialog({
     };
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
+  }, []);
+
+  // Dibuka dari menu "Bagikan": link langsung diproses (simpan otomatis tetap berlaku); teks yang ikut dibagikan
+  // disiapkan di kotak "Tempel teks", berguna kalau halamannya tidak terbaca (mis. Instagram).
+  const sharedDone = useRef(false);
+  useEffect(() => {
+    if (mode.kind !== "add" || !mode.shared) return;
+    const { url: sharedUrl, text: sharedText } = mode.shared;
+    // Dijadwalkan, bukan langsung: penanda diset di dalam timer supaya effect ganda StrictMode tidak menelan aksinya.
+    const t = setTimeout(() => {
+      if (sharedDone.current) return;
+      sharedDone.current = true;
+      if (sharedText) setPasteText(sharedText);
+      if (sharedUrl) void fetchData(sharedUrl);
+      else if (sharedText) {
+        manual();
+        setPasteMsg(describeFilled(fillFromText(sharedText)));
+      }
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hanya sekali, saat dialog dibuka dari "Bagikan"
   }, []);
 
   // Saat pindah langkah, fokus ke judul supaya pembaca layar mengumumkan langkah baru.

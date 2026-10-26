@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   title: { default: "Lokerku: pengumpul loker pribadi", template: "%s · Lokerku" },
   description:
     "Tempel link lowongan dari LinkedIn, JobStreet, Glints, Kalibrr, Indeed, Dealls, atau situs karier. Lokerku merapikan datanya ke tabel, dan menyimpannya di Google Sheet milikmu.",
-  // TODO: ikon aplikasi belum ditentukan pemilik produk. Sementara kosong supaya browser tidak meminta /favicon.ico.
-  icons: { icon: "data:," },
+  // TODO: ikon di /public/icons masih placeholder sementara (wordmark "Lk."), ganti dengan ikon final pemilik produk.
+  icons: { icon: "/icons/favicon-48.png", apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

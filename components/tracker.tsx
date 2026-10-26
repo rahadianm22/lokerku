@@ -9,6 +9,7 @@ import { useNow } from "@/hooks/use-now";
 import { download, parseBackup, toBackup } from "@/lib/backup";
 import { toCsv } from "@/lib/csv";
 import { matchesQuery, sortJobs, todayYmd, type SortKey } from "@/lib/format";
+import { parseShared } from "@/lib/share";
 import { useStore } from "@/lib/store";
 import { STATUS_LABEL, type Draft, type Job, type Status } from "@/lib/types";
 import { AddJobDialog, type DialogMode } from "./add-job/add-job-dialog";
@@ -169,6 +170,22 @@ export function Tracker() {
   }, []);
 
   const openAdd = useCallback(() => openDialog({ kind: "add" }), [openDialog]);
+
+  // Dibuka dari menu "Bagikan" aplikasi lain: /app?url=…&text=…&title=… langsung membuka dialog Tambah loker.
+  const sharedOnce = useRef(false);
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => {
+      if (sharedOnce.current) return;
+      sharedOnce.current = true;
+      const p = new URLSearchParams(window.location.search);
+      const shared = parseShared(p.get("url"), p.get("text"), p.get("title"));
+      if (!shared) return;
+      window.history.replaceState(null, "", window.location.pathname);
+      openDialog({ kind: "add", shared });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [ready, openDialog]);
   useHotkey("n", openAdd, ready && !dialog && !settingsOpen);
   useHotkey("/", () => searchRef.current?.focus(), ready && !dialog && !settingsOpen);
 

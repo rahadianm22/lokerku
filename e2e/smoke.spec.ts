@@ -325,3 +325,35 @@ test("riwayat status tercatat dan tampil di form edit", async ({ page }) => {
   await expect(hist.getByRole("listitem").nth(0)).toContainText("Disimpan");
   await expect(hist.getByRole("listitem").nth(1)).toContainText("Sudah Apply");
 });
+
+test("dibuka dari menu Bagikan Android: link langsung diproses, alamat dibersihkan", async ({ page }) => {
+  let asked = "";
+  await page.route("**/api/extract", async (route) => {
+    asked = JSON.parse(route.request().postData() ?? "{}").url;
+    await route.fulfill({
+      json: {
+        confidence: "complete",
+        missing: [],
+        data: { url: asked, platform: "JobStreet", company: "PT Dibagikan", title: "Analis Bagikan", city: "Medan", deadline: "2026-12-01" },
+      },
+    });
+  });
+  await page.goto("/app?title=Lowongan&text=" + encodeURIComponent("Cek ini: https://id.jobstreet.com/id/job/555."));
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Cek & rapikan data" })).toBeVisible();
+  expect(asked).toBe("https://id.jobstreet.com/id/job/555");
+  await expect(dialog.locator("#f-title")).toHaveValue("Analis Bagikan");
+  await expect(page).toHaveURL(/\/app$/); // parameter Bagikan tidak tertinggal di alamat
+});
+
+test("manifest PWA dan service worker tersedia", async ({ request }) => {
+  const m = await request.get("/manifest.webmanifest");
+  expect(m.ok()).toBe(true);
+  const json = await m.json();
+  expect(json.share_target).toMatchObject({ action: "/app", method: "GET" });
+  expect(json.icons.map((i: { src: string }) => i.src)).toContain("/icons/icon-512.png");
+  for (const icon of json.icons) expect((await request.get(icon.src)).ok()).toBe(true);
+  const sw = await request.get("/sw.js");
+  expect(sw.ok()).toBe(true);
+  expect(sw.headers()["cache-control"]).toContain("no-cache");
+});
