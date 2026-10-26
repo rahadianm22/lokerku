@@ -24,6 +24,7 @@ export const jobSchema = z.object({
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
   deletedAt: z.number().int().nonnegative().nullable().optional(),
+  history: z.array(z.object({ status: z.enum(STATUSES), at: z.number().int().nonnegative() })).max(100).optional(),
 }) satisfies z.ZodType<Job>;
 
 export const MAX_JOBS = 5000;

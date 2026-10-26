@@ -31,9 +31,16 @@ export interface Job {
   updatedAt: number;
   /** Tombstone untuk sinkron: loker yang dihapus tetap disimpan sebentar supaya perangkat lain ikut menghapus. */
   deletedAt?: number | null;
+  /** Perpindahan status, terlama dulu. Loker lama mungkin belum punya. */
+  history?: StatusEvent[];
 }
 
-export type Draft = Omit<Job, "id" | "createdAt" | "updatedAt" | "deletedAt">;
+export interface StatusEvent {
+  status: Status;
+  at: number;
+}
+
+export type Draft =Omit<Job, "id" | "createdAt" | "updatedAt" | "deletedAt">;
 
 export type Confidence = "complete" | "partial" | "failed";
 export type MissingField = "company" | "title" | "city" | "salary" | "postedAt" | "deadline";

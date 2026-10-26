@@ -305,3 +305,23 @@ test("tempel gambar lowongan (Ctrl+V): teks dibaca di browser dan form terisi", 
   await expect(dialog.locator(".shot")).toHaveCount(0);
   await expect(dialog.locator("#f-title")).toHaveValue("Data Analyst");
 });
+
+test("riwayat status tercatat dan tampil di form edit", async ({ page }) => {
+  await page.goto("/app");
+  await page.getByRole("button", { name: /^Tambah( loker)?$/ }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Isi manual saja" }).click();
+  await dialog.getByLabel("Perusahaan").fill("PT Riwayat");
+  await dialog.getByLabel("Posisi").fill("Uji Riwayat");
+  await dialog.getByRole("button", { name: "Simpan ke tabel" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByLabel("Ubah status Uji Riwayat").locator("visible=true").selectOption("applied");
+  await expect(page.getByText("Status diubah ke Sudah Apply")).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit loker" }).locator("visible=true").first().click();
+  const hist = page.getByRole("region", { name: "Riwayat status" });
+  await expect(hist.getByRole("listitem")).toHaveCount(2);
+  await expect(hist.getByRole("listitem").nth(0)).toContainText("Disimpan");
+  await expect(hist.getByRole("listitem").nth(1)).toContainText("Sudah Apply");
+});

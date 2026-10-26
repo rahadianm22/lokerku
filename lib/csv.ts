@@ -1,4 +1,5 @@
 import { isoWib } from "./format";
+import { appliedAt } from "./history";
 import { PRIORITY_LABEL, STATUS_LABEL, type Job } from "./types";
 
 const COLUMNS: [string, (j: Job) => string][] = [
@@ -17,6 +18,10 @@ const COLUMNS: [string, (j: Job) => string][] = [
   ["Link", (j) => j.url],
   ["Catatan", (j) => j.notes],
   ["Dikirim", (j) => isoWib(j.createdAt)],
+  ["Tanggal apply", (j) => {
+    const at = appliedAt(j);
+    return at ? isoWib(at) : "";
+  }],
 ];
 
 /** Escape CSV, plus cegah formula injection di Excel/Sheets (sel yang diawali = + - @). */

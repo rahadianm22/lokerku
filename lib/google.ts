@@ -4,7 +4,7 @@ import { HEADER, SHEET_TITLE } from "./sheet-codec";
 const DRIVE = "https://www.googleapis.com/drive/v3/files";
 const SHEETS = "https://sheets.googleapis.com/v4/spreadsheets";
 const APP_PROP = { key: "lokerku", value: "jobs" };
-const LAST_COL = String.fromCharCode(64 + HEADER.length); // 19 kolom → S
+const LAST_COL = String.fromCharCode(64 + HEADER.length); // 20 kolom → T (≤ 26 kolom)
 
 export class GoogleError extends Error {
   constructor(public status: number, message: string) {

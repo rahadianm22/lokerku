@@ -9,6 +9,7 @@ import type { Settings } from "@/lib/settings";
 import type { Confidence, Draft, ExtractResult, Job, MissingField } from "@/lib/types";
 import { normalizeUrl, toHttpUrl } from "@/lib/url";
 import { parsePostText } from "@/lib/extract/text";
+import { timeline } from "@/lib/history";
 import { imageSize, MAX_IMAGE_BYTES, readImageText } from "@/lib/ocr";
 import type { Shot } from "./image-chip";
 import { StepLink } from "./step-link";
@@ -464,7 +465,7 @@ export function AddJobDialog({
                 )}
                 {step === "loading" && <StepLoading url={url} />}
                 {step === "review" && (
-                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} note={note} httpStatus={httpStatus} paste={{ text: pasteText, setText: setPasteText, msg: pasteMsg, onFill: fillFromBox, shot, onRemoveShot: removeShot, onPickFile: (f) => void readShot(f) }} />
+                  <StepReview draft={draft} set={set} confidence={confidence} missing={missing} editing={!!editing} showUrl={showUrl} note={note} httpStatus={httpStatus} paste={{ text: pasteText, setText: setPasteText, msg: pasteMsg, onFill: fillFromBox, shot, onRemoveShot: removeShot, onPickFile: (f) => void readShot(f) }} history={editing ? timeline(editing) : undefined} />
                 )}
               </motion.div>
             </AnimatePresence>

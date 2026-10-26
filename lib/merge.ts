@@ -8,7 +8,10 @@ const CONTENT_KEYS: (keyof Job)[] = [
 ];
 
 export function sameContent(a: Job, b: Job) {
-  return CONTENT_KEYS.every((k) => (a[k] ?? null) === (b[k] ?? null));
+  return (
+    CONTENT_KEYS.every((k) => (a[k] ?? null) === (b[k] ?? null)) &&
+    JSON.stringify(a.history ?? []) === JSON.stringify(b.history ?? [])
+  );
 }
 
 /**

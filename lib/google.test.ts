@@ -93,7 +93,7 @@ describe("baca dan tulis baris", () => {
   it("readRows meminta A1:S dan mengembalikan values", async () => {
     responses = [{ json: { values: [["ID"], ["1"]] } }];
     expect(await readRows("tok", sheet)).toEqual([["ID"], ["1"]]);
-    expect(decoded(calls[0])).toContain("'Loker'!A1:S");
+    expect(decoded(calls[0])).toContain("'Loker'!A1:T");
     expect((await (async () => { responses = [{ json: {} }]; return readRows("tok", sheet); })())).toEqual([]);
   });
 
@@ -110,7 +110,7 @@ describe("baca dan tulis baris", () => {
     responses = [{ json: {} }, { json: {} }];
     await writeRows("tok", sheet, [["a"]], 6); // sebelumnya 6 baris, sekarang header + 1 = 2
     expect(calls).toHaveLength(2);
-    expect(decoded(calls[1])).toContain("'Loker'!A3:S6:clear");
+    expect(decoded(calls[1])).toContain("'Loker'!A3:T6:clear");
     expect(calls[1].method).toBe("POST");
   });
 
@@ -136,7 +136,7 @@ describe("readKnownSheet (jalur cepat)", () => {
     expect(r?.rows).toEqual([["ID"]]);
     expect(r?.sheet.url).toBe("https://docs.google.com/spreadsheets/d/abc12345678/edit");
     expect(calls).toHaveLength(1);
-    expect(decoded(calls[0])).toContain("'Loker'!A1:S");
+    expect(decoded(calls[0])).toContain("'Loker'!A1:T");
   });
 
   it("404 / 400 (file atau tab hilang) → null, error lain dilempar", async () => {

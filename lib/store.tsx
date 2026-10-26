@@ -7,6 +7,7 @@ import { dropDb, getDb, getMeta, setMeta, type LokerDb } from "./db";
 import { fromLegacy, LEGACY_KEY } from "./legacy";
 import { TOMBSTONE_TTL } from "./merge";
 import { SEED } from "./seed";
+import { initialHistory, withStatusChange } from "./history";
 import { DEFAULT_SETTINGS, parseSettings, type Settings } from "./settings";
 import type { Job } from "./types";
 
@@ -252,7 +253,7 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
   const add = useCallback(
     async (job: Job) => {
       if (!db) return;
-      await db.jobs.put({ ...job, deletedAt: null });
+      await db.jobs.put({ ...job, deletedAt: null, history: job.history?.length ? job.history : initialHistory(job.status, job.createdAt) });
       changed();
     },
     [db, changed],
@@ -263,7 +264,12 @@ export function StoreProvider({ authEnabled, children }: { authEnabled: boolean;
       if (!db) return;
       const cur = await db.jobs.get(id);
       if (!cur) return;
-      await db.jobs.put({ ...cur, ...patch, id, updatedAt: bump(cur.updatedAt) });
+      const updatedAt = bump(cur.updatedAt);
+      const next: Job = { ...cur, ...patch, id, updatedAt };
+      // Riwayat dicatat di sini, satu tempat untuk semua jalur ganti status (chip, dropdown, form edit).
+      if (patch.status && patch.status !== cur.status) next.history = withStatusChange(cur, patch.status, updatedAt);
+      else next.history = cur.history;
+      await db.jobs.put(next);
       changed();
     },
     [db, changed],

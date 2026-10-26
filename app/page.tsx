@@ -146,9 +146,9 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <span className="mono ld-sheet-tab">Loker</span>
           </div>
           <div className="ld-sheet-cols">
-            {HEADER.filter((h) => !["ID", "Logo", "Dibuat", "Diubah", "Dihapus"].includes(h)).map((h, i) => (
+            {HEADER.filter((h) => !["ID", "Logo", "Dibuat", "Diubah", "Dihapus"].includes(h)).map((h) => (
               <span key={h} className="mono">
-                <em>{String.fromCharCode(66 + i)}</em>
+                <em>{String.fromCharCode(65 + HEADER.indexOf(h))}</em>
                 {h}
               </span>
             ))}

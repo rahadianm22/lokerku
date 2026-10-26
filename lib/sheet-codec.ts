@@ -2,6 +2,7 @@ import {
   JOB_TYPES, LEVELS, MODES, PLATFORMS, PRIORITY_LABEL, STATUS_LABEL, STATUSES,
   type Job, type JobType, type Level, type Platform, type Priority, type Status, type WorkMode,
 } from "./types";
+import { cellToHistory, historyToCell } from "./history";
 
 /**
  * Satu baris per loker, header berbahasa Indonesia supaya Sheet-nya enak dibaca dan diedit manual.
@@ -10,7 +11,7 @@ import {
 export const SHEET_TITLE = "Loker";
 export const HEADER = [
   "ID", "Perusahaan", "Posisi", "Status", "Lokasi", "Mode", "Tipe", "Level", "Platform", "Gaji",
-  "Diposting", "Deadline", "Prioritas", "Catatan", "Link", "Logo", "Dibuat", "Diubah", "Dihapus",
+  "Diposting", "Deadline", "Prioritas", "Catatan", "Link", "Logo", "Dibuat", "Diubah", "Dihapus", "Riwayat",
 ] as const;
 
 const COL = Object.fromEntries(HEADER.map((h, i) => [h, i])) as Record<(typeof HEADER)[number], number>;
@@ -38,6 +39,7 @@ export function jobToRow(j: Job): string[] {
   row[COL.Dibuat] = tsOut(j.createdAt);
   row[COL.Diubah] = tsOut(j.updatedAt);
   row[COL.Dihapus] = tsOut(j.deletedAt);
+  row[COL.Riwayat] = historyToCell(j.history);
   return row;
 }
 
@@ -101,6 +103,7 @@ export function rowToJob(row: unknown[], now: number, newId: () => string): Job 
     createdAt,
     updatedAt: parseTs(cell("Diubah")) ?? now,
     deletedAt: parseTs(cell("Dihapus")),
+    history: cellToHistory(cell("Riwayat")),
   };
 }
 

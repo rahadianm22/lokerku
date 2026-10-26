@@ -6,8 +6,9 @@ import { useRef } from "react";
 import { CompanyAvatar } from "../company-avatar";
 import {
   JOB_TYPES, LEVELS, MODES, PLATFORMS, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL,
-  type Confidence, type Draft, type ExtractResult, type MissingField,
+  type Confidence, type Draft, type ExtractResult, type MissingField, type StatusEvent,
 } from "@/lib/types";
+import { fmtSent } from "@/lib/format";
 import { ConfidenceBanner } from "./confidence-banner";
 import { ImageChip, type Shot } from "./image-chip";
 import { Segmented } from "./segmented";
@@ -54,6 +55,7 @@ export function StepReview({
   note,
   httpStatus,
   paste,
+  history,
 }: {
   draft: Draft;
   set: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
@@ -67,6 +69,8 @@ export function StepReview({
   httpStatus?: number;
   /** Isi kolom kosong dari teks yang ditempel; mengembalikan label kolom yang terisi. */
   paste: PasteBox;
+  /** Riwayat status loker yang sedang diedit. */
+  history?: StatusEvent[];
 }) {
   const miss = (k: MissingField) => missing.includes(k) && !String(draft[k] ?? "").trim();
   const cls = (k: MissingField, extra = "") => `inp${extra}${miss(k) ? " missing" : ""}`;
@@ -167,6 +171,24 @@ export function StepReview({
           <textarea id="f-notes" className="inp" value={draft.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Referral, kontak HR, hal yang perlu disiapkan…" maxLength={5000} />
         </motion.div>
       </div>
+      {editing && history && history.length > 0 && (
+        <section className="hist" aria-labelledby="hist-h">
+          <h3 id="hist-h" className="hist-h">
+            Riwayat status
+          </h3>
+          <ol className="hist-list">
+            {history.map((e, i) => (
+              <li key={`${e.at}-${i}`}>
+                <span className={`chip s-${e.status}`}>
+                  <span className="cdot" />
+                  {STATUS_LABEL[e.status]}
+                </span>
+                <span className="mono hist-at">{fmtSent(e.at)}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 }
